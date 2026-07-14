@@ -17,17 +17,14 @@
 #define MAX_ADC_VALUE 8191    // ESP32-S3, 13-bit ADC
 */
 
-extern int BASE_SPEED;    // forward drive speed 
-extern int STRAFE_SPEED;    // sideways correction speed
-extern int ROTATE_SPEED;  // rotation correction speed
+#define BASE_SPEED        150
+#define STRAFE_SPEED       80
+#define ROTATE_SPEED      100
+#define CURVE_THRESHOLD     5
 
-// how many consecutive large-error readings before switching to rotate mode (meaning we have encountered a curve along the path)
-extern int CURVE_THRESHOLD;
-
-// PID for strafe correction
-extern float Kp;
-extern float Ki;
-extern float Kd;
+float Kp = 40.0f;
+float Ki =  0.0f;
+float Kd = 15.0f;
 
 float integral  = 0.0f;
 float lastError = 0.0f;
@@ -71,39 +68,27 @@ float computePID(float error) {
 // 
 void applyCorrection(float error) {
     if (error == 0.0f) {
-        // centred — drive straight and reset curve counter
         largeErrorCount = 0;
         curveMode = false;
         drive.forward(BASE_SPEED);
         return;
     }
 
-    // track how long we've had a large error
+    float correction = computePID(error);
+    int correctionSpeed = (int)abs(correction);
+    correctionSpeed = constrain(correctionSpeed, 0, 255);
+
     largeErrorCount++;
-    if (largeErrorCount >= CURVE_THRESHOLD) {
-        curveMode = true; // no longer strafing
-    }
+    if (largeErrorCount >= CURVE_THRESHOLD) curveMode = true;
 
     if (!curveMode) {
-        // Strafing mode
         drive.forward(BASE_SPEED);
-        if (error > 0) { 
-            // strafe left
-            drive.strafeLeft(STRAFE_SPEED);
-        } else {
-            // strafe right
-            drive.strafeRight(STRAFE_SPEED);
-        }
+        if (error > 0) drive.strafeLeft(correctionSpeed);
+        else           drive.strafeRight(correctionSpeed);
     } else {
-        // Curving mode
         drive.forward(BASE_SPEED);
-        if (error > 0) {
-            // rotate left (ccw)
-            drive.rotateCounterClockwise(ROTATE_SPEED);
-        } else {
-            // rotate right (cw)
-            drive.rotateClockwise(ROTATE_SPEED);
-        }
+        if (error > 0) drive.rotateCounterClockwise(correctionSpeed);
+        else           drive.rotateClockwise(correctionSpeed);
     }
 }
 
