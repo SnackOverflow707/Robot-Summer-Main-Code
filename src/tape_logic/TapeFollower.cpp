@@ -31,6 +31,9 @@ float lastError = 0.0f;
 
 static int  largeErrorCount = 0;   // consecutive large error readings
 static bool curveMode = false;
+// add this near the top with your other static variables
+static enum { GOING_FORWARD, STRAFING, ROTATING } lastMode = GOING_FORWARD;
+
 
 extern MecanumDrive drive;
 
@@ -65,12 +68,16 @@ float computePID(float error) {
     return output;
 }
 
-// 
+
 void applyCorrection(float error) {
     if (error == 0.0f) {
+        if (lastMode != GOING_FORWARD) {
+            delay(10);   // transition to forward
+        }
         largeErrorCount = 0;
         curveMode = false;
         drive.forward(BASE_SPEED);
+        lastMode = GOING_FORWARD;
         return;
     }
 
@@ -82,13 +89,23 @@ void applyCorrection(float error) {
     if (largeErrorCount >= CURVE_THRESHOLD) curveMode = true;
 
     if (!curveMode) {
+        int speed = constrain(correctionSpeed, 0, STRAFE_SPEED);
+        if (lastMode != STRAFING) {
+            delay(10);   // transition to strafe
+        }
         drive.forward(BASE_SPEED);
-        if (error > 0) drive.strafeLeft(correctionSpeed);
-        else           drive.strafeRight(correctionSpeed);
+        if (error > 0) drive.strafeLeft(speed);
+        else           drive.strafeRight(speed);
+        lastMode = STRAFING;
     } else {
+        int speed = constrain(correctionSpeed, 0, ROTATE_SPEED);
+        if (lastMode != ROTATING) {
+            delay(10);   // transition to rotate
+        }
         drive.forward(BASE_SPEED);
-        if (error > 0) drive.rotateCounterClockwise(correctionSpeed);
-        else           drive.rotateClockwise(correctionSpeed);
+        if (error > 0) drive.rotateCounterClockwise(speed);
+        else           drive.rotateClockwise(speed);
+        lastMode = ROTATING;
     }
 }
 
@@ -103,4 +120,5 @@ void tapeFollowStep() {
 
     float error = getError(leftWhite, rightWhite);
     applyCorrection(error);
-}
+    
+} 
