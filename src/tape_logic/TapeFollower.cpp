@@ -108,8 +108,14 @@ void applyCorrection(float error) {
     }
 
     float correction = computePID(error);
+<<<<<<< HEAD
     //int speed = constrain((int)abs(correction), 0, ROTATE_SPEED); possible fix here
     //int speed = constrain((int)abs(correction), 0, min(ROTATE_SPEED, BASE_SPEED));
+=======
+    int speed = constrain((int)abs(correction), 0, ROTATE_SPEED); 
+    //possible fix here
+   // int speed = constrain((int)abs(correction), 0, min(ROTATE_SPEED, BASE_SPEED));
+>>>>>>> 027543972079d46d744c27b4ec3bb0eb12aa6fa9
 
     // error > 0 = drifted left = rotate clockwise = positive rotSpeed
     // error < 0 = drifted right = rotate counter-clockwise = negative rotSpeed
