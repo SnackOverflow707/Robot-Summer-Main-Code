@@ -13,15 +13,16 @@
 #define WHITE_THRESHOLD 1.7f   // Using 3.3K pull up, 100 LED
 #define MAX_ADC_VALUE 8191    // ESP32-S3, 13-bit ADC
 
-#define BASE_SPEED        100
-#define ROTATE_SPEED      50
+#define BASE_SPEED        60
+#define ROTATE_SPEED      30
 
-float Kp = 40.0f;
+float Kp = 20.0f;
 float Ki =  0.0f;
-float Kd = 15.0f;
+float Kd = 5.0f;
 
 float integral  = 0.0f;
 float lastError = 0.0f;
+float pidLastError = 0.0f;
 
 extern MecanumDrive drive;
 
@@ -38,18 +39,26 @@ float readSensorVoltage(int pin) {
 
 // Mapping sensor states to error value (-1, 0, 1)
 float getError(bool leftWhite, bool rightWhite) {
-    if (!leftWhite && !rightWhite) return 0.0f; // both on black (centered)
-    if (!leftWhite &&  rightWhite) return  1.0f;  // right sensor is white (line drifted left)
-    if ( leftWhite && !rightWhite) return -1.0f;  // left sensor is white (line drifted right)
-    return 0.0f;                              // both sensors are white (LOST)
+    float error;
+    if (!leftWhite && !rightWhite) {
+        error = 0.0f;
+    } else if (!leftWhite && rightWhite) {
+        error = 1.0f;
+    } else if (leftWhite && !rightWhite) {
+        error = -1.0f;
+    } else {
+        return lastError;   // both white — return without updating lastError
+    }
+    lastError = error;      // only update when we have a real reading
+    return error;
 }
 
 // Computing PID
 float computePID(float error) {
     integral += error;
-    float derivative = error - lastError;
+    float derivative = error - pidLastError;
     float output = (Kp * error) + (Ki * integral) + (Kd * derivative);
-    lastError = error;
+    pidLastError = error;
     output = constrain(output, -255.0f, 255.0f);
     return output;
 }
@@ -64,8 +73,8 @@ void applyCorrection(float error) {
     int speed = constrain((int)abs(correction), 0, ROTATE_SPEED);
 
     drive.forward(BASE_SPEED);
-    if (error > 0) drive.rotateCounterClockwise(speed);
-    else           drive.rotateClockwise(speed);
+    if (error > 0) drive.rotateCounterClockwiseBackAxis(speed);
+    else           drive.rotateClockwiseBackAxis(speed);
 }
 
 void tapeFollowStep() { 
