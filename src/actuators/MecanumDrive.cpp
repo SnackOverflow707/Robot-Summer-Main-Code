@@ -47,6 +47,17 @@ void MecanumDrive::rotateCounterClockwise(int speed) {
   rotateClockwise(-speed);
 }
 
+void MecanumDrive::rotateClockwiseBackAxis(int speed) {
+  frontLeft.setSpeed(speed);
+  frontRight.setSpeed(-speed);
+  backLeft.stop();
+  backRight.stop();
+}
+
+void MecanumDrive::rotateCounterClockwiseBackAxis(int speed) {
+  rotateClockwiseBackAxis(-speed);
+}
+
 void MecanumDrive::stop() {
   frontLeft.stop();
   frontRight.stop();

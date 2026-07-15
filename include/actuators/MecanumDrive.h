@@ -18,6 +18,8 @@ public:
   void frontRightMotor(int speed);
   void backLeftMotor(int speed);
   void backRightMotor(int speed);
+  void rotateClockwiseBackAxis(int speed);
+  void rotateCounterClockwiseBackAxis(int speed);
 
 private:
   MotorDriver frontLeft;
