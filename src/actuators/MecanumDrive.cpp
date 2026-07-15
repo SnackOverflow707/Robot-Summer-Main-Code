@@ -91,3 +91,15 @@ void MecanumDrive::forwardWithRotateBackAxis(int fwdSpeed, int rotSpeed) {
     frontLeft.setSpeed(fwdSpeed + rotSpeed);
     frontRight.setSpeed(fwdSpeed - rotSpeed);
 }
+
+void MecanumDrive::forwardWithRotate(int forwardSpeed, int rotateSpeed)
+{
+    int leftSpeed  = constrain(forwardSpeed + rotateSpeed, 0, 255);
+    int rightSpeed = constrain(forwardSpeed - rotateSpeed, 0, 255);
+
+    frontLeft.setSpeed(leftSpeed);
+    backLeft.setSpeed(leftSpeed);
+
+    frontRight.setSpeed(rightSpeed);
+    backRight.setSpeed(rightSpeed);
+}
