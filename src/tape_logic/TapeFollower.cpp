@@ -116,7 +116,7 @@ void applyCorrection(float error) {
 
     // error > 0 = drifted left = rotate clockwise = positive rotSpeed
     // error < 0 = drifted right = rotate counter-clockwise = negative rotSpeed
-    drive.forwardWithRotate(BASE_SPEED, rotateSpeed);
+    drive.forwardWithRotate(BASE_SPEED, -rotateSpeed);
     
 }
 
@@ -191,6 +191,7 @@ void setTapeFollowing(bool enabled)
         drive.stop();
     }
 }
+//right sensor was on tape but moved left
 void updateTapeSensors()
 {
     latestLeftVoltage = readSensorVoltage(LEFT_SENSOR_PIN);
