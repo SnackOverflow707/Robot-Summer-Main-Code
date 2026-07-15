@@ -13,8 +13,8 @@
 #define WHITE_THRESHOLD 0.5f   // Using 3.3K pull up, 100 LED
 #define MAX_ADC_VALUE 8191    // ESP32-S3, 13-bit ADC
 
-#define BASE_SPEED        60
-#define ROTATE_SPEED      30
+#define BASE_SPEED        120
+#define ROTATE_SPEED      60
 
 float Kp = 20.0f;
 float Ki =  0.0f;
@@ -82,6 +82,22 @@ float computePID(float error) {
     return output;
 }
 
+// void applyCorrection(float error) {
+//     if (error == 0.0f) {
+//         drive.forward(BASE_SPEED);
+//         return;
+//     }
+
+//     float correction = computePID(error);
+//     int speed = constrain((int)abs(correction), 0, ROTATE_SPEED);
+
+//     drive.forward(BASE_SPEED);
+//     if (error > 0) drive.rotateCounterClockwiseBackAxis(speed);
+//     else           drive.rotateClockwiseBackAxis(speed);
+// }
+
+static enum { FORWARD, ROTATING_CCW, ROTATING_CW } motorState = FORWARD;
+
 void applyCorrection(float error) {
     if (error == 0.0f) {
         drive.forward(BASE_SPEED);
@@ -91,9 +107,10 @@ void applyCorrection(float error) {
     float correction = computePID(error);
     int speed = constrain((int)abs(correction), 0, ROTATE_SPEED);
 
-    drive.forward(BASE_SPEED);
-    if (error > 0) drive.rotateCounterClockwiseBackAxis(speed);
-    else           drive.rotateClockwiseBackAxis(speed);
+    // error > 0 = drifted left = rotate clockwise = positive rotSpeed
+    // error < 0 = drifted right = rotate counter-clockwise = negative rotSpeed
+    if (error > 0) drive.forwardWithRotateBackAxis(BASE_SPEED,  speed);
+    else           drive.forwardWithRotateBackAxis(BASE_SPEED, -speed);
 }
 
 void tapeFollowStep() { 

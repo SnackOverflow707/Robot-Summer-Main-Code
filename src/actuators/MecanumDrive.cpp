@@ -80,3 +80,14 @@ void MecanumDrive::backLeftMotor(int speed) {
 void MecanumDrive::backRightMotor(int speed) {
   backRight.setSpeed(speed);
 }
+
+void MecanumDrive::forwardWithRotateBackAxis(int fwdSpeed, int rotSpeed) {
+    // back wheels drive straight forward
+    backLeft.setSpeed(fwdSpeed);
+    backRight.setSpeed(fwdSpeed);
+
+    // front wheels: forward + rotation
+    // rotSpeed > 0 = clockwise, rotSpeed < 0 = counter-clockwise
+    frontLeft.setSpeed(fwdSpeed + rotSpeed);
+    frontRight.setSpeed(fwdSpeed - rotSpeed);
+}

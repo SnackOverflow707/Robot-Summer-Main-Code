@@ -21,6 +21,8 @@ public:
   void rotateClockwiseBackAxis(int speed);
   void rotateCounterClockwiseBackAxis(int speed);
 
+  void forwardWithRotateBackAxis(int fwdSpeed, int rotSpeed);
+
 private:
   MotorDriver frontLeft;
   MotorDriver frontRight;
