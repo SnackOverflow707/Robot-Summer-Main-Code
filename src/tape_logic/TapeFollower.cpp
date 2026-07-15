@@ -10,7 +10,9 @@
 #define RIGHT_SENSOR_PIN 12
 
 // Constants
-#define WHITE_THRESHOLD 0.5f   // Using 3.3K pull up, 100 LED
+#define LEFT_WHITE_THRESHOLD 0.5f   // Using 3.3K pull up, 100 LED
+#define RIGHT_WHITE_THRESHOLD 1.0F
+
 #define MAX_ADC_VALUE 8191    // ESP32-S3, 13-bit ADC
 
 #define BASE_SPEED        120
@@ -105,7 +107,8 @@ void applyCorrection(float error) {
     }
 
     float correction = computePID(error);
-    int speed = constrain((int)abs(correction), 0, ROTATE_SPEED);
+    //int speed = constrain((int)abs(correction), 0, ROTATE_SPEED); possible fix here
+    int speed = constrain((int)abs(correction), 0, min(ROTATE_SPEED, BASE_SPEED));
 
     // error > 0 = drifted left = rotate clockwise = positive rotSpeed
     // error < 0 = drifted right = rotate counter-clockwise = negative rotSpeed
@@ -114,25 +117,17 @@ void applyCorrection(float error) {
 }
 
 void tapeFollowStep() { 
-    if (!tapeFollowingEnabled)
-    {
-        return;
-    }
+    if (!tapeFollowingEnabled) return;
 
-    latestLeftVoltage = readSensorVoltage(LEFT_SENSOR_PIN);
+    latestLeftVoltage  = readSensorVoltage(LEFT_SENSOR_PIN);
     latestRightVoltage = readSensorVoltage(RIGHT_SENSOR_PIN);
 
-    latestLeftWhite = latestLeftVoltage < WHITE_THRESHOLD;
-    latestRightWhite = latestRightVoltage < WHITE_THRESHOLD;
+    latestLeftWhite  = latestLeftVoltage  < LEFT_WHITE_THRESHOLD;
+    latestRightWhite = latestRightVoltage < RIGHT_WHITE_THRESHOLD;
 
-    latestError = getError(
-    latestLeftWhite,
-    latestRightWhite
-);
-
-applyCorrection(latestError);
-    
-} 
+    latestError = getError(latestLeftWhite, latestRightWhite);
+    applyCorrection(latestError);
+}
 
 
 //Wifi Functions
