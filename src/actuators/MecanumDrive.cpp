@@ -103,3 +103,13 @@ void MecanumDrive::forwardWithRotate(int forwardSpeed, int rotateSpeed)
     frontRight.setSpeed(rightSpeed);
     backRight.setSpeed(rightSpeed);
 }
+void MecanumDrive::rotateAboutCenter(int rotateSpeed)
+{
+    rotateSpeed = constrain(rotateSpeed, -255, 255);
+
+    frontLeft.setSpeed( rotateSpeed);
+    backLeft.setSpeed(  rotateSpeed);
+
+    frontRight.setSpeed(-rotateSpeed);
+    backRight.setSpeed( -rotateSpeed);
+}

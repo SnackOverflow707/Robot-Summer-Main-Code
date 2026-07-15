@@ -15,12 +15,17 @@
 
 #define MAX_ADC_VALUE 8191    // ESP32-S3, 13-bit ADC
 
-#define BASE_SPEED        60
+#define BASE_SPEED        120
 #define ROTATE_SPEED      60
+#define SEARCH_ROTATE_SPEED 140
 
-float Kp = 20.0f;
+// +1 or -1, representing the most recent commanded turn direction
+static int lastTurnDirection = 1;
+static bool searchingForTape = false;
+
+float Kp = 150.0f;
 float Ki =  0.0f;
-float Kd = 5.0f;
+float Kd = 120.0f;
 
 float integral  = 0.0f;
 float lastError = 0.0f;
@@ -100,36 +105,66 @@ float computePID(float error) {
 
 // static enum { FORWARD, ROTATING_CCW, ROTATING_CW } motorState = FORWARD;
 
-void applyCorrection(float error) {
-    if (error == 0.0f) {
-        drive.forward(BASE_SPEED);
-        float correction = computePID(error);
-        return;
-    }
-
+void applyCorrection(float error)
+{
     float correction = computePID(error);
+
     int rotateSpeed = constrain(
         (int)correction,
         -min(ROTATE_SPEED, BASE_SPEED),
          min(ROTATE_SPEED, BASE_SPEED)
     );
 
-    // error > 0 = drifted left = rotate clockwise = positive rotSpeed
-    // error < 0 = drifted right = rotate counter-clockwise = negative rotSpeed
-    drive.forwardWithRotate(BASE_SPEED, -rotateSpeed);
-    
+    // Your robot currently needs the PID direction reversed
+    int rotateCommand = -rotateSpeed;
+
+    if (rotateCommand > 0) {
+        lastTurnDirection = 1;
+    }
+    else if (rotateCommand < 0) {
+        lastTurnDirection = -1;
+    }
+
+    drive.forwardWithRotate(BASE_SPEED, rotateCommand);
 }
 
-void tapeFollowStep() { 
+void tapeFollowStep()
+{
     if (!tapeFollowingEnabled) return;
 
     latestLeftVoltage  = readSensorVoltage(LEFT_SENSOR_PIN);
     latestRightVoltage = readSensorVoltage(RIGHT_SENSOR_PIN);
 
-    latestLeftWhite  = latestLeftVoltage  < LEFT_WHITE_THRESHOLD;
-    latestRightWhite = latestRightVoltage < RIGHT_WHITE_THRESHOLD;
+    latestLeftWhite =
+        latestLeftVoltage < LEFT_WHITE_THRESHOLD;
 
-    latestError = getError(latestLeftWhite, latestRightWhite);
+    latestRightWhite =
+        latestRightVoltage < RIGHT_WHITE_THRESHOLD;
+
+    bool bothOffTape =
+        latestLeftWhite && latestRightWhite;
+
+    if (bothOffTape)
+    {
+        delay (20);
+        searchingForTape = true;
+
+        // Rotate in the same direction as the most recent correction
+        drive.rotateAboutCenter(
+            lastTurnDirection * SEARCH_ROTATE_SPEED
+        );
+
+        return;
+    }
+
+    // At least one sensor has found the tape
+    searchingForTape = false;
+
+    latestError = getError(
+        latestLeftWhite,
+        latestRightWhite
+    );
+
     applyCorrection(latestError);
 }
 
