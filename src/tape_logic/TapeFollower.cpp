@@ -15,7 +15,7 @@
 
 #define MAX_ADC_VALUE 8191    // ESP32-S3, 13-bit ADC
 
-#define BASE_SPEED        120
+#define BASE_SPEED        60
 #define ROTATE_SPEED      60
 
 float Kp = 20.0f;
@@ -103,17 +103,18 @@ float computePID(float error) {
 void applyCorrection(float error) {
     if (error == 0.0f) {
         drive.forward(BASE_SPEED);
+        float correction = computePID(error);
         return;
     }
 
     float correction = computePID(error);
     //int speed = constrain((int)abs(correction), 0, ROTATE_SPEED); possible fix here
-    int speed = constrain((int)abs(correction), 0, min(ROTATE_SPEED, BASE_SPEED));
+    //int speed = constrain((int)abs(correction), 0, min(ROTATE_SPEED, BASE_SPEED));
 
     // error > 0 = drifted left = rotate clockwise = positive rotSpeed
     // error < 0 = drifted right = rotate counter-clockwise = negative rotSpeed
-    if (error > 0) drive.forwardWithRotateBackAxis(BASE_SPEED,  speed);
-    else           drive.forwardWithRotateBackAxis(BASE_SPEED, -speed);
+    if (error > 0) drive.forwardWithRotate(BASE_SPEED,  speed);
+    else           drive.forwardWithRotate(BASE_SPEED, -speed);
 }
 
 void tapeFollowStep() { 
@@ -192,6 +193,6 @@ void updateTapeSensors()
     latestLeftVoltage = readSensorVoltage(LEFT_SENSOR_PIN);
     latestRightVoltage = readSensorVoltage(RIGHT_SENSOR_PIN);
 
-    latestLeftWhite = latestLeftVoltage < LEFT_WHITE_THRESHOLD;
-    latestRightWhite = latestRightVoltage < RIGHT_WHITE_THRESHOLD;
+    latestLeftWhite = latestLeftVoltage > LEFT_WHITE_THRESHOLD;
+    latestRightWhite = latestRightVoltage > RIGHT_WHITE_THRESHOLD;
 }
