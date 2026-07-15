@@ -187,3 +187,11 @@ void setTapeFollowing(bool enabled)
         drive.stop();
     }
 }
+void updateTapeSensors()
+{
+    latestLeftVoltage = readSensorVoltage(LEFT_SENSOR_PIN);
+    latestRightVoltage = readSensorVoltage(RIGHT_SENSOR_PIN);
+
+    latestLeftWhite = latestLeftVoltage < LEFT_WHITE_THRESHOLD;
+    latestRightWhite = latestRightVoltage < RIGHT_WHITE_THRESHOLD;
+}

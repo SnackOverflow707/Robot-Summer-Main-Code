@@ -22,5 +22,6 @@ TapeFollowerStatus getTapeFollowerStatus();
 
 void setTapePID(float kp, float ki, float kd);
 void resetTapePID();
+void updateTapeSensors();
 
 #endif

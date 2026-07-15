@@ -26,6 +26,7 @@ void loop()
 {
     wifi.update();
     tapeFollowStep();
+    updateTapeSensors();    
 
     delay(5);
 }
