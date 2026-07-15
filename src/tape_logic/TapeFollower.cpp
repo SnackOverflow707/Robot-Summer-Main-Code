@@ -98,7 +98,7 @@ float computePID(float error) {
 //     else           drive.rotateClockwiseBackAxis(speed);
 // }
 
-static enum { FORWARD, ROTATING_CCW, ROTATING_CW } motorState = FORWARD;
+// static enum { FORWARD, ROTATING_CCW, ROTATING_CW } motorState = FORWARD;
 
 void applyCorrection(float error) {
     if (error == 0.0f) {
@@ -122,8 +122,8 @@ void tapeFollowStep() {
     latestLeftVoltage  = readSensorVoltage(LEFT_SENSOR_PIN);
     latestRightVoltage = readSensorVoltage(RIGHT_SENSOR_PIN);
 
-    latestLeftWhite  = latestLeftVoltage  < LEFT_WHITE_THRESHOLD;
-    latestRightWhite = latestRightVoltage < RIGHT_WHITE_THRESHOLD;
+    latestLeftWhite  = latestLeftVoltage  > LEFT_WHITE_THRESHOLD;
+    latestRightWhite = latestRightVoltage > RIGHT_WHITE_THRESHOLD;
 
     latestError = getError(latestLeftWhite, latestRightWhite);
     applyCorrection(latestError);
