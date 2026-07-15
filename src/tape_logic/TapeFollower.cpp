@@ -10,7 +10,7 @@
 #define RIGHT_SENSOR_PIN 12
 
 // Constants
-#define WHITE_THRESHOLD 1.7f   // Using 3.3K pull up, 100 LED
+#define WHITE_THRESHOLD 0.5f   // Using 3.3K pull up, 100 LED
 #define MAX_ADC_VALUE 8191    // ESP32-S3, 13-bit ADC
 
 #define BASE_SPEED        60
