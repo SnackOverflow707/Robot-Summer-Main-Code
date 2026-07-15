@@ -24,6 +24,19 @@ float integral  = 0.0f;
 float lastError = 0.0f;
 float pidLastError = 0.0f;
 
+static bool tapeFollowingEnabled = false;
+
+//Wifi Variables
+static float latestLeftVoltage = 0.0f;
+static float latestRightVoltage = 0.0f;
+
+static bool latestLeftWhite = false;
+static bool latestRightWhite = false;
+
+static float latestError = 0.0f;
+static float latestPIDOutput = 0.0f;
+static float latestDerivative = 0.0f;
+
 extern MecanumDrive drive;
 
 // Forward drive
@@ -56,10 +69,16 @@ float getError(bool leftWhite, bool rightWhite) {
 // Computing PID
 float computePID(float error) {
     integral += error;
-    float derivative = error - pidLastError;
-    float output = (Kp * error) + (Ki * integral) + (Kd * derivative);
+    latestDerivative = error - pidLastError;
+
+    float output =
+        (Kp * error) +
+        (Ki * integral) +
+        (Kd * latestDerivative);
+
     pidLastError = error;
     output = constrain(output, -255.0f, 255.0f);
+    latestPIDOutput = output;
     return output;
 }
 
@@ -78,11 +97,81 @@ void applyCorrection(float error) {
 }
 
 void tapeFollowStep() { 
+    if (!tapeFollowingEnabled)
+    {
+        return;
+    }
 
-    bool leftWhite = readSensorVoltage(LEFT_SENSOR_PIN)  < WHITE_THRESHOLD;
-    bool rightWhite = readSensorVoltage(RIGHT_SENSOR_PIN) < WHITE_THRESHOLD;
+    latestLeftVoltage = readSensorVoltage(LEFT_SENSOR_PIN);
+    latestRightVoltage = readSensorVoltage(RIGHT_SENSOR_PIN);
 
-    float error = getError(leftWhite, rightWhite);
-    applyCorrection(error);
+    latestLeftWhite = latestLeftVoltage < WHITE_THRESHOLD;
+    latestRightWhite = latestRightVoltage < WHITE_THRESHOLD;
+
+    latestError = getError(
+    latestLeftWhite,
+    latestRightWhite
+);
+
+applyCorrection(latestError);
     
 } 
+
+
+//Wifi Functions
+TapeFollowerStatus getTapeFollowerStatus()
+{
+    TapeFollowerStatus status;
+
+    status.leftVoltage = latestLeftVoltage;
+    status.rightVoltage = latestRightVoltage;
+
+    status.leftWhite = latestLeftWhite;
+    status.rightWhite = latestRightWhite;
+
+    status.error = latestError;
+    status.pidOutput = latestPIDOutput;
+    status.integral = integral;
+    status.derivative = latestDerivative;
+
+    status.kp = Kp;
+    status.ki = Ki;
+    status.kd = Kd;
+
+    return status;
+}
+
+void setTapePID(float kp, float ki, float kd)
+{
+    Kp = kp;
+    Ki = ki;
+    Kd = kd;
+
+    resetTapePID();
+}
+
+void resetTapePID()
+{
+    integral = 0.0f;
+    lastError = 0.0f;
+    pidLastError = 0.0f;
+
+    latestError = 0.0f;
+    latestPIDOutput = 0.0f;
+    latestDerivative = 0.0f;
+}
+
+bool isTapeFollowingEnabled()
+{
+    return tapeFollowingEnabled;
+}
+
+void setTapeFollowing(bool enabled)
+{
+    tapeFollowingEnabled = enabled;
+
+    if (!enabled)
+    {
+        drive.stop();
+    }
+}
