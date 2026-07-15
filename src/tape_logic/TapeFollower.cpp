@@ -126,8 +126,8 @@ void tapeFollowStep() {
     latestLeftVoltage  = readSensorVoltage(LEFT_SENSOR_PIN);
     latestRightVoltage = readSensorVoltage(RIGHT_SENSOR_PIN);
 
-    latestLeftWhite  = latestLeftVoltage  > LEFT_WHITE_THRESHOLD;
-    latestRightWhite = latestRightVoltage > RIGHT_WHITE_THRESHOLD;
+    latestLeftWhite  = latestLeftVoltage  < LEFT_WHITE_THRESHOLD;
+    latestRightWhite = latestRightVoltage < RIGHT_WHITE_THRESHOLD;
 
     latestError = getError(latestLeftWhite, latestRightWhite);
     applyCorrection(latestError);
@@ -196,6 +196,6 @@ void updateTapeSensors()
     latestLeftVoltage = readSensorVoltage(LEFT_SENSOR_PIN);
     latestRightVoltage = readSensorVoltage(RIGHT_SENSOR_PIN);
 
-    latestLeftWhite = latestLeftVoltage > LEFT_WHITE_THRESHOLD;
-    latestRightWhite = latestRightVoltage > RIGHT_WHITE_THRESHOLD;
+    latestLeftWhite = latestLeftVoltage < LEFT_WHITE_THRESHOLD;
+    latestRightWhite = latestRightVoltage < RIGHT_WHITE_THRESHOLD;
 }
