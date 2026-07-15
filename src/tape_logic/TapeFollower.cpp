@@ -108,11 +108,16 @@ void applyCorrection(float error) {
     }
 
     float correction = computePID(error);
+    int rotateSpeed = constrain(
+        (int)correction,
+        -min(ROTATE_SPEED, BASE_SPEED),
+         min(ROTATE_SPEED, BASE_SPEED)
+    );
 
     // error > 0 = drifted left = rotate clockwise = positive rotSpeed
     // error < 0 = drifted right = rotate counter-clockwise = negative rotSpeed
-    if (error > 0) drive.forwardWithRotate(BASE_SPEED,  speed);
-    else           drive.forwardWithRotate(BASE_SPEED, -speed);
+    drive.forwardWithRotate(BASE_SPEED, rotateSpeed);
+    
 }
 
 void tapeFollowStep() { 
