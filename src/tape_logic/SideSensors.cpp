@@ -1,39 +1,57 @@
-// #include <Arduino.h>
+/*
+Read sensor voltage - get thresholds tomorrow
+When below the threshold, we are on the side tape
 
-// /*
-// Side sensors to detect when the robot is near the tower pieces
-// */
+Stop the robot and call the arm functions - calibration when arm is mounted on the chassis
 
-// const int FRONT_SENSOR_PIN = 34;
-// const int REAR_SENSOR_PIN = 35;
+grab the first tower piece then grip the tower funnel to the tower stand, then grab the other pieces??
 
-// const float WHITE_THRESHOLD = 1.65; // midpoint between 0V and 3.3V
+Off tape when voltage high, on tape when voltage low
+*/
 
-// const int MAX_ADC_VALUE = 8191; // for esp32 s3 (13-bit ADC)\
+#include "SideSensors.h"
+#include "actuators/MecanumDrive.h"
 
-// void setupSideSensors() {
-//   // configure your side sensor pins here
-//   pinMode(FRONT_SENSOR_PIN, INPUT);
-//   pinMode(REAR_SENSOR_PIN, INPUT);
-// }
+#define SENSOR_PIN 10 // UPDATE!
+#define MAX_ADC_VALUE 8191
+#define WHITE_THRESHOLD 3.0f // UPDATE!
 
-// float readSensorVoltage(int pin) {
-//   int raw = analogRead(pin);           
-//   return raw * (3.3 / MAX_ADC_VALUE);
-// }
+extern MecanumDrive drive;
 
-// void setup() {
-//     setupSideSensors();
-//     Serial.begin(115200);
-// }
-// // If the state of the front or the back sensor changes, then we're near the tower pieces
-// void loop() {
-//     bool frontIsWhite  = readSensorVoltage(FRONT_SENSOR_PIN)  > WHITE_THRESHOLD;
-//     bool rearIsWhite = readSensorVoltage(REAR_SENSOR_PIN) > WHITE_THRESHOLD;
+// Wifi variables
+static float latestSensorVoltage = 0.0f;
+static bool latestOnTape = false;
 
-//     if (!frontIsWhite || !rearIsWhite) {
-//         // SENSOR TRIGGERED!
-//         Serial.println("In position to pick up tower pieces.");
-//     }
+float readSideSensorVoltage(int pin);
+bool sensorTriggered(float rawSensorVal);
 
-// }
+float readSideSensorVoltage(int pin){
+    int raw = analogRead(pin);
+    return raw * (3.3f / MAX_ADC_VALUE);
+}
+
+bool sensorTriggered(float voltage) {
+    return voltage < WHITE_THRESHOLD;
+}
+
+void checkForSideTape() {
+    latestSensorVoltage = readSideSensorVoltage(SENSOR_PIN);  
+    latestOnTape = sensorTriggered(latestSensorVoltage);  
+
+    if (latestOnTape) {
+        drive.stop();
+        // TODO: arm functions
+        delay(3000);
+    }
+}
+
+SideSensorStatus getSideSensorStatus() {
+    SideSensorStatus status;
+    status.sensorVoltage = latestSensorVoltage;
+    status.onTape = latestOnTape;
+    return status;
+}
+
+
+
+

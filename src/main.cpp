@@ -2,6 +2,7 @@
 
 #include "actuators/MecanumDrive.h"
 #include "tape_logic/TapeFollower.h"
+#include "tape_logic/SideSensors.h"
 #include "core/WifiManager.h"
 
 MecanumDrive drive;
@@ -25,6 +26,7 @@ void setup()
 void loop()
 {
     wifi.update();
+    checkForSideTape();
     tapeFollowStep();
     updateTapeSensors();    
 

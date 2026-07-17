@@ -1,5 +1,6 @@
 #include "core/WifiManager.h"
 #include "tape_logic/TapeFollower.h"
+#include "tape_logic/SideSensors.h"
 
 WifiManager::WifiManager(
     const char* ssid,
@@ -203,6 +204,7 @@ _server.on("/stopTape", HTTP_GET, [this]()
     {
         const TapeFollowerStatus status =
             getTapeFollowerStatus();
+        const SideSensorStatus sideStatus = getSideSensorStatus();
 
         String json;
         json.reserve(300);
@@ -241,6 +243,12 @@ _server.on("/stopTape", HTTP_GET, [this]()
 
         json += ",\"kd\":";
         json += String(status.kd, 2);
+
+        json += ",\"sideSensorVoltage\":";
+        json += String(sideStatus.sensorVoltage, 3);
+
+        json += ",\"sideOnTape\":";
+        json += (sideStatus.onTape ? "true" : "false");
 
         json += "}";
 
@@ -420,6 +428,17 @@ void WifiManager::showControlPage()
                 Waiting...
             </p>
         </div>
+    </div>
+</div>
+
+<div class="panel">
+    <h2>Side Sensor</h2>
+    <div id="sideSensorBox" class="sensor">
+        <p>
+            Voltage:
+            <span id="sideSensorVoltage" class="value">--</span> V
+        </p>
+        <p id="sideTapeStatus" class="value">Waiting...</p>
     </div>
 </div>
 
@@ -636,6 +655,16 @@ async function updateStatus()
             "rightSensorBox",
             "rightTapeStatus",
             data.rightWhite
+        );
+
+        document.getElementById(
+            "sideSensorVoltage"
+        ).textContent = Number(data.sideSensorVoltage).toFixed(3);
+
+        setSensorDisplay(
+            "sideSensorBox",
+            "sideTapeStatus",
+            data.sideOnTape
         );
 
         document.getElementById(
