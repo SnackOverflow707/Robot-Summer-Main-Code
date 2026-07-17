@@ -664,7 +664,7 @@ async function updateStatus()
         setSensorDisplay(
             "sideSensorBox",
             "sideTapeStatus",
-            data.sideOnTape
+            !data.sideOnTape
         );
 
         document.getElementById(
