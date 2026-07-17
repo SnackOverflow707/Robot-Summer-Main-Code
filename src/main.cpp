@@ -14,7 +14,7 @@ void setup()
 {
     Serial.begin(115200);
 
-    pinMode(12, INPUT);
+    pinMode(14, INPUT);
     pinMode(13, INPUT);
 
     drive.begin();

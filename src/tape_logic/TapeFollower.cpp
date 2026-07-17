@@ -6,8 +6,8 @@
 #include "actuators/MecanumDrive.h"
 
 // UPDATE!
-#define LEFT_SENSOR_PIN 13
-#define RIGHT_SENSOR_PIN 12
+#define LEFT_SENSOR_PIN 14
+#define RIGHT_SENSOR_PIN 13
 
 // Constants
 #define LEFT_WHITE_THRESHOLD 0.5f   // Using 3.3K pull up, 100 LED
