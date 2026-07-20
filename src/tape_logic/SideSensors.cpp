@@ -14,7 +14,7 @@ Off tape when voltage high, on tape when voltage low
 
 #define SENSOR_PIN 10 // UPDATE!
 #define MAX_ADC_VALUE 8191
-#define WHITE_THRESHOLD 0.9f // UPDATE!
+#define WHITE_THRESHOLD 1.0f // UPDATE!
 
 extern MecanumDrive drive;
 
