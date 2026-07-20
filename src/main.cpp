@@ -1,8 +1,8 @@
 #include <Arduino.h>
 
 #include "actuators/MecanumDrive.h"
-#include "tape_logic/TapeFollower.h"
-#include "tape_logic/SideSensors.h"
+#include "comms/UART.h"
+#include "core/StateMachine.h"
 #include "core/WifiManager.h"
 
 MecanumDrive drive;
@@ -14,10 +14,13 @@ void setup()
 {
     Serial.begin(115200);
 
+    drive.begin();
+    UART::begin();
+
+    StateMachine::begin();
+
     pinMode(14, INPUT);
     pinMode(13, INPUT);
-
-    drive.begin();
 
     wifi.begin();
     wifi.enable();
@@ -25,12 +28,18 @@ void setup()
 
 void loop()
 {
+    UART::update();
     wifi.update();
-    checkForSideTape();
-    wifi.update();
-    tapeFollowStep();
-    wifi.update();
-    updateTapeSensors();    
 
+    UART::Data sensorData =UART::getData();
+
+    if (sensorData.valid) {
+        StateMachine::update(
+            sensorData.mag1,
+            sensorData.mag2
+        );
+    } else {
+        StateMachine::update(0, 0);
+    }
     delay(5);
 }

@@ -15,3 +15,5 @@
 //UART link 
 #define SENSOR_UART_TX 4
 #define SENSOR_UART_RX 5
+
+#define FREQ_SWITCH_PIN 11

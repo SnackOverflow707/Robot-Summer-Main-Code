@@ -1,6 +1,9 @@
 #include "core/WifiManager.h"
 #include "tape_logic/TapeFollower.h"
 #include "tape_logic/SideSensors.h"
+#include "comms/UART.h"
+#include "core/StateMachine.h"
+
 
 WifiManager::WifiManager(
     const char* ssid,
@@ -89,6 +92,28 @@ void WifiManager::setupRoutes()
         200,
         "text/plain",
         "Tape follower enabled"
+    );
+});
+_server.on("/startStateMachine", HTTP_GET, [this]()
+{
+    StateMachine::setEnabled(true);
+
+    _server.send(
+        200,
+        "text/plain",
+        "State machine enabled"
+    );
+});
+
+
+_server.on("/stopStateMachine", HTTP_GET, [this]()
+{
+    StateMachine::setEnabled(false);
+
+    _server.send(
+        200,
+        "text/plain",
+        "State machine disabled"
     );
 });
 
@@ -205,9 +230,10 @@ _server.on("/stopTape", HTTP_GET, [this]()
         const TapeFollowerStatus status =
             getTapeFollowerStatus();
         const SideSensorStatus sideStatus = getSideSensorStatus();
+        const UART::Data uartData = UART::getData();
 
         String json;
-        json.reserve(300);
+        json.reserve(450);
 
         json += "{";
 
@@ -249,6 +275,57 @@ _server.on("/stopTape", HTTP_GET, [this]()
 
         json += ",\"sideOnTape\":";
         json += (sideStatus.onTape ? "true" : "false");
+
+        json += ",\"mag1\":";
+        json += String(uartData.mag1);
+
+        json += ",\"mag2\":";
+        json += String(uartData.mag2);
+
+        json += ",\"uartMask\":";
+        json += String(uartData.mask);
+
+        json += ",\"uartFrameCount\":";
+        json += String(uartData.frameCount);
+
+        json += ",\"uartValid\":";
+        json += (uartData.valid ? "true" : "false");
+
+const bool mag1Selected =
+    StateMachine::isMag1Selected();
+
+const uint16_t selectedMagnitude =
+    StateMachine::getSelectedMagnitude(
+        uartData.mag1,
+        uartData.mag2
+    );
+
+const bool selectedDetected =
+    StateMachine::isSelectedDetected(
+        uartData.mag1,
+        uartData.mag2
+    );
+
+json += ",\"switchState\":";
+json += mag1Selected ? "true" : "false";
+
+json += ",\"selectedFrequency\":\"";
+json += mag1Selected ? "1 kHz" : "10 kHz";
+json += "\"";
+
+json += ",\"selectedMagnitude\":";
+json += String(selectedMagnitude);
+
+json += ",\"selectedDetected\":";
+json += selectedDetected ? "true" : "false";
+        json += ",\"uartAgeMs\":";
+        json += uartData.valid
+            ? String(millis() - uartData.lastUpdateMs)
+            : String(-1);
+
+        json += ",\"robotState\":\"";
+        json += StateMachine::getStateName();
+        json += "\"";
 
         json += "}";
 
@@ -364,7 +441,7 @@ void WifiManager::showControlPage()
 
         .off-tape {
             background: #f7c8c8;
-        }
+       cv       }
 
         button {
             min-width: 130px;
@@ -440,6 +517,41 @@ void WifiManager::showControlPage()
         </p>
         <p id="sideTapeStatus" class="value">Waiting...</p>
     </div>
+</div>
+
+
+<div class="panel">
+    <h2>UART Sensor Data</h2>
+
+    <p>
+        Mag 1:
+        <span id="mag1" class="value">--</span>
+    </p>
+
+    <p>
+        Mag 2:
+        <span id="mag2" class="value">--</span>
+    </p>
+
+    <p>
+        Detection mask:
+        <span id="uartMask" class="value">--</span>
+    </p>
+
+    <p>
+        Valid frames:
+        <span id="uartFrameCount" class="value">--</span>
+    </p>
+
+    <p>
+        Last frame age:
+        <span id="uartAgeMs" class="value">--</span> ms
+    </p>
+
+    <p>
+        UART status:
+        <span id="uartStatus" class="value">Waiting...</span>
+    </p>
 </div>
 
 <div class="panel">
@@ -590,10 +702,34 @@ void WifiManager::showControlPage()
         <span id="commandStatus" class="value">Ready</span>
     </p>
 </div>
+<h2>IR Sensor</h2>
+
+<p>Switch pin: <span id="switchState">--</span></p>
+<p>Selected frequency: <span id="selectedFrequency">--</span></p>
+<p>Mag 1: <span id="mag1">--</span></p>
+<p>Mag 2: <span id="mag2">--</span></p>
+<p>Selected magnitude: <span id="selectedMagnitude">--</span></p>
+<p>Detected: <span id="detected">--</span></p>
+<p>UART valid: <span id="uartValid">--</span></p>
 
 <p id="connectionStatus">
     Connecting to ESP32...
 </p>
+<div class="panel">
+    <h2>Robot State</h2>
+
+    <p>
+        Current state:
+        <span id="robotState" class="value">Waiting...</span>
+        <button onclick="sendCommand('/startStateMachine')">
+    Start State Machine
+</button>
+
+<button onclick="sendCommand('/stopStateMachine')">
+    Stop State Machine
+</button>
+    </p>
+</div>
 
 <script>
 let pidInputsInitialized = false;
@@ -636,6 +772,10 @@ async function updateStatus()
         }
 
         const data = await response.json();
+        document.getElementById(
+            "robotState"
+        ).textContent = data.robotState;
+
 
         document.getElementById(
             "leftVoltage"
@@ -666,6 +806,71 @@ async function updateStatus()
             "sideTapeStatus",
             data.sideOnTape
         );
+
+
+        document.getElementById(
+            "mag1"
+        ).textContent = data.mag1;
+
+        document.getElementById(
+            "mag2"
+        ).textContent = data.mag2;
+        document.getElementById(
+    "switchState"
+).textContent =
+    data.switchState ?
+    "1 kHz Selected" :
+    "10 kHz Selected";
+
+document.getElementById(
+    "selectedFrequency"
+).textContent =
+    data.selectedFrequency;
+
+document.getElementById(
+    "selectedMagnitude"
+).textContent =
+    data.selectedMagnitude;
+
+document.getElementById(
+    "detected"
+).textContent =
+    data.selectedDetected ?
+    "YES" :
+    "NO";
+
+document.getElementById(
+    "uartValid"
+).textContent =
+    data.uartValid ?
+    "YES" :
+    "NO";
+
+        document.getElementById(
+            "uartMask"
+        ).textContent =
+            "0x" + Number(data.uartMask)
+                .toString(16)
+                .padStart(2, "0")
+                .toUpperCase();
+
+        document.getElementById(
+            "uartFrameCount"
+        ).textContent = data.uartFrameCount;
+
+        document.getElementById(
+            "uartAgeMs"
+        ).textContent = data.uartAgeMs;
+
+        const uartStatus = document.getElementById("uartStatus");
+
+        if (!data.uartValid) {
+            uartStatus.textContent = "No valid frame received";
+        } else if (data.uartAgeMs > 1000) {
+            uartStatus.textContent = "Data is stale";
+        } else {
+            uartStatus.textContent = "Receiving";
+        }
 
         document.getElementById(
             "error"

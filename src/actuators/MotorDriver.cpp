@@ -1,6 +1,6 @@
 #include "actuators/MotorDriver.h"
 
-static constexpr int PWM_FREQ = 1000;
+static constexpr int PWM_FREQ = 400;
 static constexpr int PWM_RESOLUTION = 8;
 static constexpr int REVERSE_DEAD_TIME_US = 2000; // tune to your driver's datasheet
 
