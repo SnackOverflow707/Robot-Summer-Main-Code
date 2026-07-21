@@ -15,7 +15,7 @@
 
 #define MAX_ADC_VALUE 8191    // ESP32-S3, 13-bit ADC
 
-#define BASE_SPEED        120
+static int baseSpeed = 120;
 #define ROTATE_SPEED      60
 #define SEARCH_ROTATE_SPEED 140
 
@@ -111,8 +111,8 @@ void applyCorrection(float error)
 
     int rotateSpeed = constrain(
         (int)correction,
-        -min(ROTATE_SPEED, BASE_SPEED),
-         min(ROTATE_SPEED, BASE_SPEED)
+        -min(ROTATE_SPEED, baseSpeed),
+         min(ROTATE_SPEED, baseSpeed)
     );
 
     // Your robot currently needs the PID direction reversed
@@ -125,7 +125,7 @@ void applyCorrection(float error)
         lastTurnDirection = -1;
     }
 
-    drive.forwardWithRotate(BASE_SPEED, rotateCommand);
+    drive.forwardWithRotate(baseSpeed, rotateCommand);
 }
 
 void tapeFollowStep()
@@ -234,4 +234,13 @@ void updateTapeSensors()
 
     latestLeftWhite = latestLeftVoltage < LEFT_WHITE_THRESHOLD;
     latestRightWhite = latestRightVoltage < RIGHT_WHITE_THRESHOLD;
+}
+void setBaseSpeed(int speed)
+{
+    baseSpeed = constrain(speed, 0, 255);
+}
+
+int getBaseSpeed()
+{
+    return baseSpeed;
 }

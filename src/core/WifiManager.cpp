@@ -222,119 +222,228 @@ _server.on("/stopTape", HTTP_GET, [this]()
         _server.send(200, "text/plain", "Stopped");
     });
 
+    _server.on("/stateMachine/start", HTTP_GET, [this]()
+{
+    StateMachine::setEnabled(true);
+
+    _server.send(
+        200,
+        "text/plain",
+        "State machine started"
+    );
+});
+
+_server.on("/stateMachine/stop", HTTP_GET, [this]()
+{
+    StateMachine::setEnabled(false);
+
+    _server.send(
+        200,
+        "text/plain",
+        "State machine stopped"
+    );
+});
+
+_server.on("/stateMachine/restart", HTTP_GET, [this]()
+{
+    if (!StateMachine::isEnabled())
+    {
+        _server.send(
+            409,
+            "text/plain",
+            "Enable the state machine before restarting"
+        );
+
+        return;
+    }
+
+    StateMachine::restart();
+
+    _server.send(
+        200,
+        "text/plain",
+        "State machine restarted"
+    );
+});
+_server.on("/stateMachine/setState", HTTP_GET, [this]()
+{
+    if (!_server.hasArg("state"))
+    {
+        _server.send(
+            400,
+            "text/plain",
+            "Missing state argument"
+        );
+
+        return;
+    }
+
+    const String requestedState = _server.arg("state");
+
+    if (!StateMachine::requestStateById(requestedState))
+    {
+        if (!StateMachine::isEnabled() &&
+            requestedState != "stopped")
+        {
+            _server.send(
+                409,
+                "text/plain",
+                "Enable the state machine first"
+            );
+        }
+        else
+        {
+            _server.send(
+                400,
+                "text/plain",
+                "Invalid state"
+            );
+        }
+
+        return;
+    }
+
+    String response = "Changed state to ";
+    response += StateMachine::getStateName();
+
+    _server.send(200, "text/plain", response);
+});
+
     /*
      * Return tape-follower data as JSON.
      */
-    _server.on("/status", HTTP_GET, [this]()
-    {
-        const TapeFollowerStatus status =
-            getTapeFollowerStatus();
-        const SideSensorStatus sideStatus = getSideSensorStatus();
-        const UART::Data uartData = UART::getData();
+   _server.on("/status", HTTP_GET, [this]()
+{
+    const TapeFollowerStatus status =
+        getTapeFollowerStatus();
 
-        String json;
-        json.reserve(450);
+    const SideSensorStatus sideStatus =
+        getSideSensorStatus();
 
-        json += "{";
+    const UART::Data uartData =
+        UART::getData();
 
-        json += "\"leftVoltage\":";
-        json += String(status.leftVoltage, 3);
+    const bool mag1Selected =
+        StateMachine::isMag1Selected();
 
-        json += ",\"rightVoltage\":";
-        json += String(status.rightVoltage, 3);
-
-        json += ",\"leftWhite\":";
-        json += (status.leftWhite ? "true" : "false");
-
-        json += ",\"rightWhite\":";
-        json += (status.rightWhite ? "true" : "false");
-
-        json += ",\"error\":";
-        json += String(status.error, 2);
-
-        json += ",\"pidOutput\":";
-        json += String(status.pidOutput, 2);
-
-        json += ",\"integral\":";
-        json += String(status.integral, 2);
-
-        json += ",\"derivative\":";
-        json += String(status.derivative, 2);
-
-        json += ",\"kp\":";
-        json += String(status.kp, 2);
-
-        json += ",\"ki\":";
-        json += String(status.ki, 2);
-
-        json += ",\"kd\":";
-        json += String(status.kd, 2);
-
-        json += ",\"sideSensorVoltage\":";
-        json += String(sideStatus.sensorVoltage, 3);
-
-        json += ",\"sideOnTape\":";
-        json += (sideStatus.onTape ? "true" : "false");
-
-        json += ",\"mag1\":";
-        json += String(uartData.mag1);
-
-        json += ",\"mag2\":";
-        json += String(uartData.mag2);
-
-        json += ",\"uartMask\":";
-        json += String(uartData.mask);
-
-        json += ",\"uartFrameCount\":";
-        json += String(uartData.frameCount);
-
-        json += ",\"uartValid\":";
-        json += (uartData.valid ? "true" : "false");
-
-const bool mag1Selected =
-    StateMachine::isMag1Selected();
-
-const uint16_t selectedMagnitude =
-    StateMachine::getSelectedMagnitude(
-        uartData.mag1,
-        uartData.mag2
-    );
-
-const bool selectedDetected =
-    StateMachine::isSelectedDetected(
-        uartData.mag1,
-        uartData.mag2
-    );
-
-json += ",\"switchState\":";
-json += mag1Selected ? "true" : "false";
-
-json += ",\"selectedFrequency\":\"";
-json += mag1Selected ? "1 kHz" : "10 kHz";
-json += "\"";
-
-json += ",\"selectedMagnitude\":";
-json += String(selectedMagnitude);
-
-json += ",\"selectedDetected\":";
-json += selectedDetected ? "true" : "false";
-        json += ",\"uartAgeMs\":";
-        json += uartData.valid
-            ? String(millis() - uartData.lastUpdateMs)
-            : String(-1);
-
-        json += ",\"robotState\":\"";
-        json += StateMachine::getStateName();
-        json += "\"";
-
-        json += "}";
-
-        _server.send(
-            200,
-            "application/json",
-            json
+    const uint16_t selectedMagnitude =
+        StateMachine::getSelectedMagnitude(
+            uartData.mag1,
+            uartData.mag2
         );
-    });
+
+    const bool selectedDetected =
+        StateMachine::isSelectedDetected(
+            uartData.mag1,
+            uartData.mag2
+        );
+
+    String json;
+    json.reserve(600);
+
+    json += "{";
+
+    json += "\"leftVoltage\":";
+    json += String(status.leftVoltage, 3);
+
+    json += ",\"rightVoltage\":";
+    json += String(status.rightVoltage, 3);
+
+    json += ",\"leftWhite\":";
+    json += status.leftWhite ? "true" : "false";
+
+    json += ",\"rightWhite\":";
+    json += status.rightWhite ? "true" : "false";
+
+    json += ",\"error\":";
+    json += String(status.error, 2);
+
+    json += ",\"pidOutput\":";
+    json += String(status.pidOutput, 2);
+
+    json += ",\"integral\":";
+    json += String(status.integral, 2);
+
+    json += ",\"derivative\":";
+    json += String(status.derivative, 2);
+
+    json += ",\"kp\":";
+    json += String(status.kp, 2);
+
+    json += ",\"ki\":";
+    json += String(status.ki, 2);
+
+    json += ",\"kd\":";
+    json += String(status.kd, 2);
+
+    json += ",\"sideSensorVoltage\":";
+    json += String(sideStatus.sensorVoltage, 3);
+
+    json += ",\"sideOnTape\":";
+    json += sideStatus.onTape ? "true" : "false";
+
+    json += ",\"mag1\":";
+    json += String(uartData.mag1);
+
+    json += ",\"mag2\":";
+    json += String(uartData.mag2);
+
+    json += ",\"uartMask\":";
+    json += String(uartData.mask);
+
+    json += ",\"uartFrameCount\":";
+    json += String(uartData.frameCount);
+
+    json += ",\"uartValid\":";
+    json += uartData.valid ? "true" : "false";
+
+    json += ",\"stateId\":\"";
+    json += StateMachine::getStateId();
+    json += "\"";
+
+    json += ",\"stateName\":\"";
+    json += StateMachine::getStateName();
+    json += "\"";
+
+    json += ",\"stateEnabled\":";
+    json += StateMachine::isEnabled() ? "true" : "false";
+
+    json += ",\"stateElapsedMs\":";
+    json += String(StateMachine::getStateElapsedMs());
+
+    json += ",\"sideTapeCount\":";
+    json += String(StateMachine::getSideTapeTriggerCount());
+
+    json += ",\"switchState\":";
+    json += mag1Selected ? "true" : "false";
+
+    json += ",\"selectedFrequency\":\"";
+    json += mag1Selected ? "1 kHz" : "10 kHz";
+    json += "\"";
+
+    json += ",\"selectedMagnitude\":";
+    json += String(selectedMagnitude);
+
+    json += ",\"selectedDetected\":";
+    json += selectedDetected ? "true" : "false";
+
+    json += ",\"uartAgeMs\":";
+    json += uartData.valid
+        ? String(millis() - uartData.lastUpdateMs)
+        : String(-1);
+
+    json += ",\"robotState\":\"";
+    json += StateMachine::getStateName();
+    json += "\"";
+
+    json += "}";
+
+    _server.send(
+        200,
+        "application/json",
+        json
+    );
+});
 
     /*
      * Example:
@@ -730,10 +839,97 @@ void WifiManager::showControlPage()
 </button>
     </p>
 </div>
+<div class="state-panel">
+    <h2>State Machine</h2>
+
+    <div>
+        Current state:
+        <strong id="stateName">Loading...</strong>
+    </div>
+
+    <div>
+        Enabled:
+        <strong id="stateEnabled">No</strong>
+    </div>
+
+    <div>
+        State time:
+        <strong id="stateElapsed">0 ms</strong>
+    </div>
+
+    <div>
+        Side-tape triggers:
+        <strong id="sideTapeCount">0</strong>
+    </div>
+
+    <div class="state-controls">
+        <button onclick="startStateMachine()">
+            Start
+        </button>
+
+        <button onclick="restartStateMachine()">
+            Restart
+        </button>
+
+        <button onclick="stopStateMachine()">
+            Stop
+        </button>
+    </div>
+
+    <p id="stateMessage"></p>
+</div>
 
 <script>
 let pidInputsInitialized = false;
+async function sendStateRequest(url)
+{
+    try
+    {
+        const response = await fetch(url);
+        const message = await response.text();
 
+        document.getElementById("stateMessage").textContent =
+            message;
+
+        await updateStateMachineDisplay();
+    }
+    catch (error)
+    {
+        document.getElementById("stateMessage").textContent =
+            "Request failed: " + error.message;
+    }
+}
+
+async function startStateMachine()
+{
+    await sendStateRequest("/stateMachine/start");
+}
+
+async function stopStateMachine()
+{
+    await sendStateRequest("/stateMachine/stop");
+}
+
+async function restartStateMachine()
+{
+    await sendStateRequest("/stateMachine/restart");
+}
+
+async function selectRobotState(stateId)
+{
+    await sendStateRequest(
+        "/stateMachine/setState?state=" +
+        encodeURIComponent(stateId)
+    );
+}
+
+document.querySelectorAll(".state-node").forEach(node =>
+{
+    node.addEventListener("click", function()
+    {
+        selectRobotState(this.dataset.state);
+    });
+});
 function setSensorDisplay(
     boxId,
     textId,
@@ -900,10 +1096,30 @@ document.getElementById(
 
             pidInputsInitialized = true;
         }
+            document.getElementById("stateName").textContent =
+    data.stateName;
+
+document.getElementById("stateEnabled").textContent =
+    data.stateEnabled ? "Yes" : "No";
+
+document.getElementById("stateElapsed").textContent =
+    data.stateElapsedMs + " ms";
+
+document.getElementById("sideTapeCount").textContent =
+    data.sideTapeCount;
+
+document.querySelectorAll(".state-node").forEach(node =>
+{
+    node.classList.toggle(
+        "active",
+        node.dataset.state === data.stateId
+    );
+});
 
         document.getElementById(
             "connectionStatus"
         ).textContent = "ESP32 connected";
+
     }
     catch (error) {
         document.getElementById(
