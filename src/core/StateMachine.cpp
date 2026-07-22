@@ -1,12 +1,30 @@
 #include "core/StateMachine.h"
 
 #include "tape_logic/TapeFollower.h"
-#include "core/states/IRAligner.h"
-#include "actuators/MecanumDrive.h"
-#include "core/states/TowerRam.h"
 #include "tape_logic/SideSensors.h"
+#include "actuators/MecanumDrive.h"
 
-// The actual drive object is created in main.cpp.
+// Expected mechanism files:
+//
+// mechanisms/RockGrabber.h
+// mechanisms/TowerPieceGrabber.h
+// mechanisms/TowerRam.h
+// mechanisms/TowerBuilder.h
+// mechanisms/TapeReturn.h
+// mechanisms/IRAligner.h
+// mechanisms/SolarPanelRipper.h
+//
+// Each mechanism should expose the functions used below.
+
+#include "core/states/RockGrabber.h"
+#include "core/states/TowerPieceGrabber.h"
+#include "core/states/TowerRam.h"
+#include "core/states/TowerBuilder.h"
+#include "core/states/TapeReturn.h"
+#include "core/states/IRAligner.h"
+#include "core/states/SolarPanelRipper.h"
+
+
 extern MecanumDrive drive;
 
 namespace StateMachine
@@ -16,8 +34,17 @@ namespace StateMachine
 // Configuration
 // --------------------------------------------------
 
-static constexpr uint16_t MAG1_THRESHOLD = 100;
-static constexpr uint16_t MAG2_THRESHOLD = 20;
+static constexpr uint16_t MAG1_THRESHOLD = 20000;
+static constexpr uint16_t MAG2_THRESHOLD = 2000;
+static constexpr uint16_t METAL_THRESHOLD = 50;
+
+static constexpr int STRAFE_SPEED = 150;
+static constexpr int IR_TUNE_SPEED = 60;
+
+static constexpr unsigned long STRAFE_TIME_MS = 600;
+static constexpr unsigned long IR_TUNE_FORWARD_TIME_MS = 400;
+static constexpr unsigned long IR_TUNE_BACKWARD_TIME_MS = 400;
+static constexpr unsigned long SENSOR_DEBOUNCE_MS = 100;
 
 static constexpr int SENSOR_SELECT_PIN = 11;
 
@@ -25,77 +52,256 @@ static constexpr int SENSOR_SELECT_PIN = 11;
 // State variables
 // --------------------------------------------------
 
-static State currentState = State::SLOW_TAPE_FOLLOWING;
+static State currentState = State::STOPPED;
 static unsigned long stateStartTime = 0;
 static bool enabled = false;
 
-// Prevents a continuously high IR reading from retriggering.
 static bool irTriggerArmed = true;
-static unsigned long sideTapeTriggerCount = 0;
+static bool metalTriggerArmed = true;
+static bool sideTapeTriggerArmed = true;
+static bool returnTapeTriggerArmed = true;
+
+static uint8_t sideTapeTriggerCount = 0;
+
+static unsigned long lastSideTapeTriggerTime = 0;
+static unsigned long lastReturnTapeTriggerTime = 0;
+
 // --------------------------------------------------
-// Internal state-change function declaration
+// State names and website IDs
 // --------------------------------------------------
 
-static void changeState(State newState);
-
-// --------------------------------------------------
-// State information
-// --------------------------------------------------
+const char* getStateName(State state)
+{
+    switch (state)
+    {
+        case State::TAPE_FOLLOW_ROCK_CHECK:   return "Tape Follow + Rock Check";
+        case State::ROCK_GRAB:                return "Rock Grab";
+        case State::GRAB_FIRST_TOWER_PIECE:   return "Grab First Tower Piece";
+        case State::TAPE_FOLLOW_TO_TOWER:     return "Tape Follow to Tower";
+        case State::TOWER_RAM:                return "Tower Ram";
+        case State::TOWER_BUILD:              return "Tower Build";
+        case State::RETURN_TO_TAPE:           return "Return to Tape";
+        case State::SLOW_TAPE_FOLLOWING:      return "Slow Tape Following";
+        case State::IR_ALLIGNING:         return "IR Tune Backward";
+        case State::RIP_SOLAR_PANEL:          return "Rip Solar Panel";
+        case State::ENDPOINT:                 return "Endpoint";
+        case State::STOPPED:                  return "Stopped";
+        default:                              return "Unknown";
+    }
+}
 
 const char* getStateName()
 {
+    return getStateName(currentState);
+}
+
+const char* getStateId(State state)
+{
+    switch (state)
+    {
+        case State::TAPE_FOLLOW_ROCK_CHECK:   return "tape-rock";
+        case State::ROCK_GRAB:                return "rock-grab";
+        case State::GRAB_FIRST_TOWER_PIECE:   return "grab-tower-piece";
+        case State::TAPE_FOLLOW_TO_TOWER:     return "tape-to-tower";
+        case State::TOWER_RAM:                return "tower-ram";
+        case State::TOWER_BUILD:              return "tower-build";
+        case State::RETURN_TO_TAPE:           return "return-to-tape";
+        case State::SLOW_TAPE_FOLLOWING:      return "slow-tape";
+        case State::IR_ALLIGNING:             return "ir-alligning";
+        case State::RIP_SOLAR_PANEL:          return "rip-panel";
+        case State::ENDPOINT:                 return "endpoint";
+        case State::STOPPED:                  return "stopped";
+        default:                              return "unknown";
+    }
+}
+
+const char* getStateId()
+{
+    return getStateId(currentState);
+}
+
+// --------------------------------------------------
+// Stop helpers
+// --------------------------------------------------
+
+static void stopAllMechanisms()
+{
+   /* RockGrabber::stop();
+    TowerPieceGrabber::stop();
+    TowerRam::stop();
+    TowerBuilder::stop();
+    TapeReturn::stop();
+    IRAligner::stop();
+    SolarPanelRipper::stop();*/
+    IRAligner::stop();
+}
+
+static void stopCurrentOutputs()
+{
+    setTapeFollowing(false);
+    drive.stop();
+    stopAllMechanisms();
+}
+
+// --------------------------------------------------
+// State transition
+// --------------------------------------------------
+
+static void changeState(State newState)
+{
+    stopCurrentOutputs();
+
+    currentState = newState;
+    stateStartTime = millis();
+
+    Serial.print("State: ");
+    Serial.println(getStateName());
+
     switch (currentState)
     {
+        case State::TAPE_FOLLOW_ROCK_CHECK:
+            resetTapePID();
+            //setBaseSpeed(100);
+            setTapeFollowing(true);
+            break;
+
+        case State::ROCK_GRAB:
+            //RockGrabber::begin();
+            break;
+
+        case State::GRAB_FIRST_TOWER_PIECE:
+            //TowerPieceGrabber::begin();
+            break;
+
+        case State::TAPE_FOLLOW_TO_TOWER:
+            resetTapePID();
+            //setTapeBaseSpeed(120);
+            setTapeFollowing(true);
+            break;
+
+        case State::TOWER_RAM:
+            //TowerRam::begin();
+            break;
+
+        case State::TOWER_BUILD:
+            //TowerBuilder::begin();
+            break;
+
+        case State::RETURN_TO_TAPE:
+            //TapeReturn::begin();
+            break;
+
         case State::SLOW_TAPE_FOLLOWING:
-            return "Slow Tape Following";
+            resetTapePID();
+            //setTapeBaseSpeed(50);
+
+            setTapeFollowing(true);
+            break;
 
         case State::IR_ALLIGNING:
-            return "IR Aligning";
-        case State::TOWER_RAM:
-            return "Tower Ram";
-        case State::FIND_SIDE_TAPE:
-            return "Find Side Tape";
 
-        /*
+            IRAligner::begin();
+            IRAligner::start();
+            break;
+
         case State::RIP_SOLAR_PANEL:
-            return "Rip Solar Panel";
+            //SolarPanelRipper::begin();
+            break;
 
-        case State::FAST_TAPE_FOLLOWING:
-            return "Fast Tape Following";
-
-        case State::DROP_SOLAR_PANEL:
-            return "Drop Solar Panel";
-        */
-
+        case State::ENDPOINT:
         case State::STOPPED:
-            return "Stopped";
-
-        default:
-            return "Unknown";
+            drive.stop();
+            break;
     }
 }
 
 // --------------------------------------------------
-// Enable and disable
+// Trigger helpers
 // --------------------------------------------------
+
+static bool consumeSideTapeTrigger(bool detected)
+{
+    if (!detected)
+    {
+        sideTapeTriggerArmed = true;
+        return false;
+    }
+
+    if (!sideTapeTriggerArmed)
+    {
+        return false;
+    }
+
+    const unsigned long now = millis();
+
+    if (now - lastSideTapeTriggerTime < SENSOR_DEBOUNCE_MS)
+    {
+        return false;
+    }
+
+    sideTapeTriggerArmed = false;
+    lastSideTapeTriggerTime = now;
+    ++sideTapeTriggerCount;
+
+    return true;
+}
+
+static bool consumeReturnTapeTrigger(bool detected)
+{
+    if (!detected)
+    {
+        returnTapeTriggerArmed = true;
+        return false;
+    }
+
+    if (!returnTapeTriggerArmed)
+    {
+        return false;
+    }
+
+    const unsigned long now = millis();
+
+    if (now - lastReturnTapeTriggerTime < SENSOR_DEBOUNCE_MS)
+    {
+        return false;
+    }
+
+    returnTapeTriggerArmed = false;
+    lastReturnTapeTriggerTime = now;
+
+    return true;
+}
+
+// --------------------------------------------------
+// Public control
+// --------------------------------------------------
+
+void begin()
+{
+    pinMode(SENSOR_SELECT_PIN, INPUT_PULLUP);
+
+    enabled = false;
+    sideTapeTriggerCount = 0;
+
+    irTriggerArmed = true;
+    metalTriggerArmed = true;
+    sideTapeTriggerArmed = true;
+    returnTapeTriggerArmed = true;
+
+    changeState(State::STOPPED);
+}
 
 void setEnabled(bool value)
 {
-    enabled = value;
-
-    if (!enabled)
+    if (value)
     {
-        setTapeFollowing(false);
-        IRAligner::stop();
-        drive.stop();
-        TowerRam::stop();
-
-        currentState = State::STOPPED;
-        stateStartTime = millis();
+        enabled = true;
+        restart();
     }
     else
     {
-        restart();
+        enabled = false;
+        changeState(State::STOPPED);
     }
 }
 
@@ -104,115 +310,135 @@ bool isEnabled()
     return enabled;
 }
 
-// --------------------------------------------------
-// Internal state-change function
-// --------------------------------------------------
-
-static void changeState(State newState)
+void restart()
 {
-    if (newState == currentState)
-    {
-        return;
-    }
-
-    // Stop whichever behaviour was previously running.
-    setTapeFollowing(false);
-    IRAligner::stop();
-    TowerRam::stop();
-    drive.stop();
-
-    currentState = newState;
-    stateStartTime = millis();
-
-    switch (currentState)
-    {
-        case State::FIND_SIDE_TAPE:
-            Serial.println("State: FIND_SIDE_TAPE");
-
-            setBaseSpeed(50);
-            resetTapePID();
-            setTapeFollowing(true);
-            break;
-
-        case State::SLOW_TAPE_FOLLOWING:
-            Serial.println("State: SLOW_TAPE_FOLLOWING");
-
-            setBaseSpeed(50);
-            resetTapePID();
-            setTapeFollowing(true);
-            break;
-
-        case State::IR_ALLIGNING:
-            Serial.println("State: IR_ALLIGNING");
-
-            IRAligner::start();
-            break;
-
-        case State::TOWER_RAM:
-            Serial.println("State: TOWER_RAM");
-
-            TowerRam::start();
-            break;
-
-        case State::STOPPED:
-            Serial.println("State: STOPPED");
-
-            drive.stop();
-            break;
-    }
-}
-
-// --------------------------------------------------
-// Public functions
-// --------------------------------------------------
-
-void begin()
-{
-    pinMode(SENSOR_SELECT_PIN, INPUT_PULLUP);
+    sideTapeTriggerCount = 0;
 
     irTriggerArmed = true;
+    metalTriggerArmed = true;
+    sideTapeTriggerArmed = true;
+    returnTapeTriggerArmed = true;
 
-    IRAligner::begin();
-    TowerRam::begin();
-
-    currentState = State::STOPPED;
-    changeState(State::FIND_SIDE_TAPE);
+    if (enabled)
+    {
+        changeState(State::SLOW_TAPE_FOLLOWING);
+    }
+    else
+    {
+        changeState(State::STOPPED);
+    }
 }
-void update(uint16_t mag1, uint16_t mag2)
+
+void stop()
+{
+    enabled = false;
+    changeState(State::STOPPED);
+}
+
+// --------------------------------------------------
+// Main update
+// --------------------------------------------------
+
+void update(const Inputs& inputs)
 {
     if (!enabled)
     {
         return;
     }
 
-    const bool irDetected = isSelectedDetected(mag1, mag2);
-    const bool sideTapeTriggered = checkForSideTape();
+    const bool irDetected =
+        isSelectedDetected(inputs.mag1, inputs.mag2);
+
+    const bool metalDetected =
+        inputs.metalMagnitude > METAL_THRESHOLD;
 
     if (!irDetected)
     {
         irTriggerArmed = true;
     }
 
+    if (!metalDetected)
+    {
+        metalTriggerArmed = true;
+    }
+
     switch (currentState)
     {
-        case State::FIND_SIDE_TAPE:
-            // Follow the normal floor tape slowly.
+        case State::TAPE_FOLLOW_ROCK_CHECK:
             tapeFollowStep();
 
-            // Do not check IR in this state.
-            if (sideTapeTriggered)
+            if (metalDetected && metalTriggerArmed)
             {
-                Serial.println("Side tape detected");
+                metalTriggerArmed = false;
+                changeState(State::ROCK_GRAB);
+                break;
+            }
 
-                sideTapeTriggerCount++;
+            if (consumeSideTapeTrigger(inputs.sideTapeDetected) &&
+                sideTapeTriggerCount == 1)
+            {
+                changeState(State::GRAB_FIRST_TOWER_PIECE);
+            }
+            break;
+
+        case State::ROCK_GRAB:
+            /*RockGrabber::update();
+
+            if (RockGrabber::isFinished())
+            {
+                changeState(State::TAPE_FOLLOW_ROCK_CHECK);
+            }*/
+            break;
+
+        case State::GRAB_FIRST_TOWER_PIECE:
+            /*TowerPieceGrabber::update();
+
+            if (TowerPieceGrabber::isFinished())
+            {
+                changeState(State::TAPE_FOLLOW_TO_TOWER);
+            }*/
+            break;
+
+        case State::TAPE_FOLLOW_TO_TOWER:
+            tapeFollowStep();
+
+            if (consumeSideTapeTrigger(inputs.sideTapeDetected) &&
+                sideTapeTriggerCount >= 2)
+            {
                 changeState(State::TOWER_RAM);
             }
+            break;
+
+        case State::TOWER_RAM:
+            TowerRam::update();
+
+            if (TowerRam::isFinished())
+            {
+                changeState(State::TOWER_BUILD);
+            }
+            break;
+
+        case State::TOWER_BUILD:
+            /*TowerBuilder::update();
+
+            if (TowerBuilder::isFinished())
+            {
+                changeState(State::RETURN_TO_TAPE);
+            }*/
+            break;
+
+        case State::RETURN_TO_TAPE:
+            /*TapeReturn::update();
+
+            if (consumeReturnTapeTrigger(inputs.returnTapeDetected))
+            {
+                changeState(State::SLOW_TAPE_FOLLOWING);
+            }*/
             break;
 
         case State::SLOW_TAPE_FOLLOWING:
             tapeFollowStep();
 
-            // Leave this original IR behaviour unchanged.
             if (irDetected && irTriggerArmed)
             {
                 irTriggerArmed = false;
@@ -225,26 +451,26 @@ void update(uint16_t mag1, uint16_t mag2)
 
             if (IRAligner::isFinished())
             {
-                Serial.println("IR alignment successful");
-                changeState(State::STOPPED);
+                changeState(State::RIP_SOLAR_PANEL);
             }
             else if (IRAligner::hasFailed())
             {
-                Serial.println("IR alignment failed");
                 changeState(State::STOPPED);
             }
             break;
 
-        case State::TOWER_RAM:
-            TowerRam::update();
+        
 
-            if (TowerRam::isFinished())
+        case State::RIP_SOLAR_PANEL:
+            /*SolarPanelRipper::update();
+
+            if (SolarPanelRipper::isFinished())
             {
-                Serial.println("Tower ram finished");
-                changeState(State::STOPPED);
-            }
+                changeState(State::ENDPOINT);
+            }*/
             break;
 
+        case State::ENDPOINT:
         case State::STOPPED:
             drive.stop();
             break;
@@ -252,64 +478,46 @@ void update(uint16_t mag1, uint16_t mag2)
 }
 
 // --------------------------------------------------
-// Manual state selection
+// Website/manual state selection
 // --------------------------------------------------
 
-bool requestStateById(const String& requestedState)
+bool requestState(State state)
 {
-    State newState;
-
-    if (requestedState == "slow_tape_following")
+    if (state == State::STOPPED)
     {
-        newState = State::SLOW_TAPE_FOLLOWING;
-    }
-    else if (
-        requestedState == "ir_alligning" ||
-        requestedState == "ir_aligning")
-    {
-        newState = State::IR_ALLIGNING;
-    }
-    else if (requestedState == "tower_ram")
-    {
-        newState = State::TOWER_RAM;
+        stop();
+        return true;
     }
 
-    /*
-    else if (requestedState == "rip_solar_panel")
-    {
-        newState = State::RIP_SOLAR_PANEL;
-    }
-    else if (requestedState == "fast_tape_following")
-    {
-        newState = State::FAST_TAPE_FOLLOWING;
-    }
-    else if (requestedState == "drop_solar_panel")
-    {
-        newState = State::DROP_SOLAR_PANEL;
-    }
-    */
-
-    else if (requestedState == "stopped")
-    {
-        newState = State::STOPPED;
-    }
-    else
+    if (!enabled)
     {
         return false;
     }
 
-    // Only STOPPED may be requested while disabled.
-    if (!enabled && newState != State::STOPPED)
-    {
-        return false;
-    }
-
-    changeState(newState);
+    changeState(state);
     return true;
 }
 
+bool requestStateById(const String& stateId)
+{
+    if (stateId == "tape-rock")          return requestState(State::TAPE_FOLLOW_ROCK_CHECK);
+    if (stateId == "rock-grab")          return requestState(State::ROCK_GRAB);
+    if (stateId == "grab-tower-piece")   return requestState(State::GRAB_FIRST_TOWER_PIECE);
+    if (stateId == "tape-to-tower")      return requestState(State::TAPE_FOLLOW_TO_TOWER);
+    if (stateId == "tower-ram")          return requestState(State::TOWER_RAM);
+    if (stateId == "tower-build")        return requestState(State::TOWER_BUILD);
+    if (stateId == "return-to-tape")     return requestState(State::RETURN_TO_TAPE);
+    if (stateId == "slow-tape")          return requestState(State::SLOW_TAPE_FOLLOWING);
+    if (stateId == "ir-alligning")          return requestState(State::IR_ALLIGNING);
+    if (stateId == "rip-panel")          return requestState(State::RIP_SOLAR_PANEL);
+    if (stateId == "endpoint")           return requestState(State::ENDPOINT);
+    if (stateId == "stopped")            return requestState(State::STOPPED);
+
+    return false;
+}
+
 // --------------------------------------------------
-// State controls
+// Telemetry
 // --------------------------------------------------
 
 State getState()
@@ -317,10 +525,14 @@ State getState()
     return currentState;
 }
 
-void restart()
+unsigned long getStateElapsedMs()
 {
-    irTriggerArmed = true;
-    changeState(State::FIND_SIDE_TAPE);
+    return millis() - stateStartTime;
+}
+
+uint8_t getSideTapeTriggerCount()
+{
+    return sideTapeTriggerCount;
 }
 
 // --------------------------------------------------
@@ -345,45 +557,6 @@ bool isSelectedDetected(uint16_t mag1, uint16_t mag2)
     }
 
     return mag2 > MAG2_THRESHOLD;
-}
-unsigned long getStateElapsedMs()
-{
-    return millis() - stateStartTime;
-}
-
-unsigned long getSideTapeTriggerCount()
-{
-    return sideTapeTriggerCount;
-}
-String getStateId()
-{
-    switch (currentState)
-    {
-        case State::SLOW_TAPE_FOLLOWING:
-            return "slow_tape_following";
-
-        case State::IR_ALLIGNING:
-            return "ir_alligning";
-
-        /*
-        case State::RIP_SOLAR_PANEL:
-            return "rip_solar_panel";
-
-        case State::FAST_TAPE_FOLLOWING:
-            return "fast_tape_following";
-
-        case State::DROP_SOLAR_PANEL:
-            return "drop_solar_panel";
-        */
-       case State::TOWER_RAM:
-            return "tower_ram";
-
-        case State::STOPPED:
-            return "stopped";
-
-        default:
-            return "unknown";
-    }
 }
 
 } // namespace StateMachine

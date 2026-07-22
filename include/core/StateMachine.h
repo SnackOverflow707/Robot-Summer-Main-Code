@@ -5,38 +5,96 @@
 namespace StateMachine
 {
 
+// --------------------------------------------------
+// All available robot states
+// --------------------------------------------------
+
 enum class State
 {
+    TAPE_FOLLOW_ROCK_CHECK,
+    ROCK_GRAB,
+    GRAB_FIRST_TOWER_PIECE,
+    TAPE_FOLLOW_TO_TOWER,
+    TOWER_RAM,
+    TOWER_BUILD,
+    RETURN_TO_TAPE,
+
     SLOW_TAPE_FOLLOWING,
     IR_ALLIGNING,
-    TOWER_RAM,
-    FIND_SIDE_TAPE,
-    /*
-    RIP_SOLAR_PANEL,
-    FAST_TAPE_FOLLOWING,
-    DROP_SOLAR_PANEL,
-    */
 
+    RIP_SOLAR_PANEL,
+    ENDPOINT,
     STOPPED
 };
 
+// --------------------------------------------------
+// Inputs supplied to StateMachine::update()
+// --------------------------------------------------
+
+struct Inputs
+{
+    uint16_t mag1;
+    uint16_t mag2;
+
+    uint16_t metalMagnitude;
+
+    bool sideTapeDetected;
+    bool returnTapeDetected;
+};
+
+// --------------------------------------------------
+// Setup and control
+// --------------------------------------------------
+
 void begin();
-void update(uint16_t mag1, uint16_t mag2);
 
 void setEnabled(bool value);
 bool isEnabled();
 
-bool requestStateById(const String& requestedState);
+void restart();
+void stop();
+
+void update(const Inputs& inputs);
+
+// --------------------------------------------------
+// Manual/website state control
+// --------------------------------------------------
+
+bool requestState(State state);
+bool requestStateById(const String& stateId);
+
+// --------------------------------------------------
+// State information
+// --------------------------------------------------
 
 State getState();
-const char* getStateName();
 
-void restart();
+const char* getStateName();
+const char* getStateName(State state);
+
+const char* getStateId();
+const char* getStateId(State state);
+
+unsigned long getStateElapsedMs();
+
+// This must match the uint8_t definition in StateMachine.cpp.
+uint8_t getSideTapeTriggerCount();
+
+// --------------------------------------------------
+// IR sensor selection
+// --------------------------------------------------
 
 bool isMag1Selected();
-uint16_t getSelectedMagnitude(uint16_t mag1, uint16_t mag2);
-bool isSelectedDetected(uint16_t mag1, uint16_t mag2);
-unsigned long getStateElapsedMs();
-unsigned long getSideTapeTriggerCount();
-String getStateId();
+
+uint16_t getSelectedMagnitude(
+    uint16_t mag1,
+    uint16_t mag2
+);
+
+bool isSelectedDetected(
+    uint16_t mag1,
+    uint16_t mag2
+);
+
+
 } // namespace StateMachine

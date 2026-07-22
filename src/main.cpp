@@ -33,20 +33,24 @@ void loop()
     UART::update();
     wifi.update();
 
-
-    UART::Data sensorData =UART::getData();
-
-    if (sensorData.valid) {
-        StateMachine::update(
-            sensorData.mag1,
-            sensorData.mag2
-        );
-    } else {
-        StateMachine::update(0, 0);
-    }
     updateTapeSensors();
     checkForSideTape();
-    
 
+    const UART::Data& sensorData = UART::getData();
+    const TapeFollowerStatus tapeStatus = getTapeFollowerStatus();
+    const SideSensorStatus sideStatus = getSideSensorStatus();
+
+    StateMachine::Inputs inputs;
+
+    inputs.mag1 = sensorData.valid ? sensorData.mag1 : 0;
+    inputs.mag2 = sensorData.valid ? sensorData.mag2 : 0;
+
+    inputs.metalMagnitude = 0;
+
+    inputs.sideTapeDetected = checkForSideTape();
+    inputs.returnTapeDetected = false;
+
+    StateMachine::update(inputs);
     delay(5);
+    
 }
