@@ -4,19 +4,22 @@
 #include "comms/UART.h"
 #include "core/StateMachine.h"
 #include "core/WifiManager.h"
+#include "robotArm/ArmController2.h"
 #include "tape_logic/TapeFollower.h"
 #include "tape_logic/SideSensors.h"
 
 MecanumDrive drive;
+ArmController2 arm;
 
 // The SSID/password arguments are unused in access-point mode.
-WifiManager wifi("", "", drive);
+WifiManager wifi("", "", drive, arm);
 
 void setup()
 {
     Serial.begin(115200);
 
     drive.begin();
+    arm.begin();
     UART::begin();
 
     StateMachine::begin();
