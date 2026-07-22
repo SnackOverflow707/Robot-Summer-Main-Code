@@ -3,6 +3,8 @@
 #include "tape_logic/TapeFollower.h"
 #include "core/states/IRAligner.h"
 #include "actuators/MecanumDrive.h"
+#include "core/states/TowerRam.h"
+#include "tape_logic/SideSensors.h"
 
 // The actual drive object is created in main.cpp.
 extern MecanumDrive drive;
@@ -49,6 +51,10 @@ const char* getStateName()
 
         case State::IR_ALLIGNING:
             return "IR Aligning";
+        case State::TOWER_RAM:
+            return "Tower Ram";
+        case State::FIND_SIDE_TAPE:
+            return "Find Side Tape";
 
         /*
         case State::RIP_SOLAR_PANEL:
@@ -82,6 +88,7 @@ void setEnabled(bool value)
         setTapeFollowing(false);
         IRAligner::stop();
         drive.stop();
+        TowerRam::stop();
 
         currentState = State::STOPPED;
         stateStartTime = millis();
@@ -108,9 +115,10 @@ static void changeState(State newState)
         return;
     }
 
-    // Stop the behaviour from the previous state.
+    // Stop whichever behaviour was previously running.
     setTapeFollowing(false);
     IRAligner::stop();
+    TowerRam::stop();
     drive.stop();
 
     currentState = newState;
@@ -118,8 +126,17 @@ static void changeState(State newState)
 
     switch (currentState)
     {
+        case State::FIND_SIDE_TAPE:
+            Serial.println("State: FIND_SIDE_TAPE");
+
+            setBaseSpeed(50);
+            resetTapePID();
+            setTapeFollowing(true);
+            break;
+
         case State::SLOW_TAPE_FOLLOWING:
             Serial.println("State: SLOW_TAPE_FOLLOWING");
+
             setBaseSpeed(50);
             resetTapePID();
             setTapeFollowing(true);
@@ -131,26 +148,11 @@ static void changeState(State newState)
             IRAligner::start();
             break;
 
-        /*
-        case State::RIP_SOLAR_PANEL:
-            Serial.println("State: RIP_SOLAR_PANEL");
+        case State::TOWER_RAM:
+            Serial.println("State: TOWER_RAM");
 
-            // SolarPanelRipper::start();
+            TowerRam::start();
             break;
-
-        case State::FAST_TAPE_FOLLOWING:
-            Serial.println("State: FAST_TAPE_FOLLOWING");
-
-            // resetTapePID();
-            // setFastTapeFollowing(true);
-            break;
-
-        case State::DROP_SOLAR_PANEL:
-            Serial.println("State: DROP_SOLAR_PANEL");
-
-            // SolarPanelDropper::start();
-            break;
-        */
 
         case State::STOPPED:
             Serial.println("State: STOPPED");
@@ -171,12 +173,11 @@ void begin()
     irTriggerArmed = true;
 
     IRAligner::begin();
+    TowerRam::begin();
 
-    // currentState initially has this value, so force a clean entry.
     currentState = State::STOPPED;
-    changeState(State::SLOW_TAPE_FOLLOWING);
+    changeState(State::FIND_SIDE_TAPE);
 }
-
 void update(uint16_t mag1, uint16_t mag2)
 {
     if (!enabled)
@@ -185,8 +186,8 @@ void update(uint16_t mag1, uint16_t mag2)
     }
 
     const bool irDetected = isSelectedDetected(mag1, mag2);
+    const bool sideTapeTriggered = checkForSideTape();
 
-    // Rearm only after the selected signal goes below its threshold.
     if (!irDetected)
     {
         irTriggerArmed = true;
@@ -194,9 +195,24 @@ void update(uint16_t mag1, uint16_t mag2)
 
     switch (currentState)
     {
+        case State::FIND_SIDE_TAPE:
+            // Follow the normal floor tape slowly.
+            tapeFollowStep();
+
+            // Do not check IR in this state.
+            if (sideTapeTriggered)
+            {
+                Serial.println("Side tape detected");
+
+                sideTapeTriggerCount++;
+                changeState(State::TOWER_RAM);
+            }
+            break;
+
         case State::SLOW_TAPE_FOLLOWING:
             tapeFollowStep();
 
+            // Leave this original IR behaviour unchanged.
             if (irDetected && irTriggerArmed)
             {
                 irTriggerArmed = false;
@@ -210,48 +226,24 @@ void update(uint16_t mag1, uint16_t mag2)
             if (IRAligner::isFinished())
             {
                 Serial.println("IR alignment successful");
-
-                // Eventually:
-                // changeState(State::RIP_SOLAR_PANEL);
-
                 changeState(State::STOPPED);
             }
             else if (IRAligner::hasFailed())
             {
                 Serial.println("IR alignment failed");
-
                 changeState(State::STOPPED);
             }
             break;
 
-        /*
-        case State::RIP_SOLAR_PANEL:
-            // SolarPanelRipper::update();
+        case State::TOWER_RAM:
+            TowerRam::update();
 
-            // if (SolarPanelRipper::isFinished())
-            // {
-            //     changeState(State::FAST_TAPE_FOLLOWING);
-            // }
+            if (TowerRam::isFinished())
+            {
+                Serial.println("Tower ram finished");
+                changeState(State::STOPPED);
+            }
             break;
-
-        case State::FAST_TAPE_FOLLOWING:
-            // fastTapeFollowStep();
-
-            // if (nextTriggerDetected)
-            // {
-            //     changeState(State::DROP_SOLAR_PANEL);
-            // }
-            break;
-
-        case State::DROP_SOLAR_PANEL:
-            // SolarPanelDropper::update();
-
-            // if (SolarPanelDropper::isFinished())
-            // {
-            //     changeState(State::STOPPED);
-            // }
-            break;
-        */
 
         case State::STOPPED:
             drive.stop();
@@ -276,6 +268,10 @@ bool requestStateById(const String& requestedState)
         requestedState == "ir_aligning")
     {
         newState = State::IR_ALLIGNING;
+    }
+    else if (requestedState == "tower_ram")
+    {
+        newState = State::TOWER_RAM;
     }
 
     /*
@@ -324,7 +320,7 @@ State getState()
 void restart()
 {
     irTriggerArmed = true;
-    changeState(State::SLOW_TAPE_FOLLOWING);
+    changeState(State::FIND_SIDE_TAPE);
 }
 
 // --------------------------------------------------
@@ -379,6 +375,8 @@ String getStateId()
         case State::DROP_SOLAR_PANEL:
             return "drop_solar_panel";
         */
+       case State::TOWER_RAM:
+            return "tower_ram";
 
         case State::STOPPED:
             return "stopped";

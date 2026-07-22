@@ -4,6 +4,8 @@
 #include "comms/UART.h"
 #include "core/StateMachine.h"
 #include "core/WifiManager.h"
+#include "tape_logic/TapeFollower.h"
+#include "tape_logic/SideSensors.h"
 
 MecanumDrive drive;
 
@@ -31,6 +33,7 @@ void loop()
     UART::update();
     wifi.update();
 
+
     UART::Data sensorData =UART::getData();
 
     if (sensorData.valid) {
@@ -41,5 +44,9 @@ void loop()
     } else {
         StateMachine::update(0, 0);
     }
+    updateTapeSensors();
+    checkForSideTape();
+    
+
     delay(5);
 }

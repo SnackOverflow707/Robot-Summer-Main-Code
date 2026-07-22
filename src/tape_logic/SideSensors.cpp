@@ -34,15 +34,28 @@ bool sensorTriggered(float voltage) {
     return voltage > WHITE_THRESHOLD;
 }
 
-void checkForSideTape() {
-    latestSensorVoltage = readSideSensorVoltage(SENSOR_PIN);  
-    latestOnTape = sensorTriggered(latestSensorVoltage);  
+bool checkForSideTape()
+{
+    static bool triggerArmed = true;
 
-    if (latestOnTape) {
-        drive.stop();
-        // TODO: arm functions
-        delay(3000);
+    // Update the values used by the website.
+    latestSensorVoltage = readSideSensorVoltage(SENSOR_PIN);
+    latestOnTape = sensorTriggered(latestSensorVoltage);
+
+    // Trigger only once when we first hit the tape.
+    if (latestOnTape && triggerArmed)
+    {
+        triggerArmed = false;
+        return true;
     }
+
+    // Rearm after we leave the tape.
+    if (!latestOnTape)
+    {
+        triggerArmed = true;
+    }
+
+    return false;
 }
 
 SideSensorStatus getSideSensorStatus() {

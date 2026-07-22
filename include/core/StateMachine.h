@@ -9,7 +9,8 @@ enum class State
 {
     SLOW_TAPE_FOLLOWING,
     IR_ALLIGNING,
-
+    TOWER_RAM,
+    FIND_SIDE_TAPE,
     /*
     RIP_SOLAR_PANEL,
     FAST_TAPE_FOLLOWING,

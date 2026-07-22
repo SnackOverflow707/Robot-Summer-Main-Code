@@ -6,7 +6,7 @@ struct SideSensorStatus {
     bool  onTape;
 };
 
-void checkForSideTape();
+bool checkForSideTape();
 SideSensorStatus getSideSensorStatus();
 
 #endif
