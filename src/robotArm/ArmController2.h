@@ -15,14 +15,14 @@
 #define CLAW_SERVO  5
 
 // Pin definitions for the servos
-#define PIN_BASE   1 
-#define PIN_SHOULDER_A 7
-#define PIN_SHOULDER_B 5
-#define PIN_ELBOW     4 //temp
-#define PIN_WRIST    10 
-#define PIN_CLAW      2
+#define PIN_BASE   48 
+#define PIN_SHOULDER_A 47
+#define PIN_SHOULDER_B 38
+#define PIN_ELBOW     39 //temp
+#define PIN_WRIST    40 
+#define PIN_CLAW     21
 
-#define PIN_SWITCH 11
+#define PIN_SWITCH 17
 
 // Home position angles
 #define HOME_BASE     0
