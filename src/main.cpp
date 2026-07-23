@@ -44,10 +44,10 @@ void loop()
     const SideSensorStatus sideStatus = getSideSensorStatus();
     StateMachine::Inputs inputs;
 
-    bool wifiRequested = (sensorData.mask & 0x04) != 0;
-    if (wifiRequested){
+    /*bool wifiRequested = (sensorData.mask & 0x04) != 0;
+    if (wifiRequested){*/
         wifi.update();
-    }
+    //}
     inputs.metalMagnitude =
     metalData.valid
         ? static_cast<uint16_t>(
@@ -61,8 +61,6 @@ void loop()
 
     inputs.mag1 = sensorData.valid ? sensorData.mag1 : 0;
     inputs.mag2 = sensorData.valid ? sensorData.mag2 : 0;
-
-    inputs.metalMagnitude = 0;
 
     inputs.sideTapeDetected = checkForSideTape();
     inputs.returnTapeDetected = false;
