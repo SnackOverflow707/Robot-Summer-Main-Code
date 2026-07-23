@@ -6,11 +6,10 @@
 #define FR_A 7 //16
 #define FR_B 8 //15
 
-#define BL_A 7 //18
-#define BL_B 8 //17
 
 #define BR_A 3 //42
 #define BR_B 4 //41
+
 #define BR_A 5 //42
 #define BR_B 6 //41
 
