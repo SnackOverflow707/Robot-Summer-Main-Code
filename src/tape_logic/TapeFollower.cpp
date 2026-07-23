@@ -15,13 +15,14 @@
 
 #define MAX_ADC_VALUE 8191    // ESP32-S3, 13-bit ADC
 
-static int baseSpeed = 120;
+
 #define ROTATE_SPEED      60
 #define SEARCH_ROTATE_SPEED 140
 
 // +1 or -1, representing the most recent commanded turn direction
 static int lastTurnDirection = 1;
 static bool searchingForTape = false;
+static int baseSpeed = 120;
 
 float Kp = 150.0f;
 float Ki =  0.0f;
@@ -235,12 +236,13 @@ void updateTapeSensors()
     latestLeftWhite = latestLeftVoltage < LEFT_WHITE_THRESHOLD;
     latestRightWhite = latestRightVoltage < RIGHT_WHITE_THRESHOLD;
 }
-void setBaseSpeed(int speed)
+
+void setTapeBaseSpeed(int speed)
 {
     baseSpeed = constrain(speed, 0, 255);
 }
 
-int getBaseSpeed()
+int getTapeBaseSpeed()
 {
     return baseSpeed;
 }

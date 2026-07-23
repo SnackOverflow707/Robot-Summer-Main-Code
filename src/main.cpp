@@ -4,19 +4,22 @@
 #include "comms/UART.h"
 #include "core/StateMachine.h"
 #include "core/WifiManager.h"
+#include "robotArm/ArmController2.h"
 #include "tape_logic/TapeFollower.h"
 #include "tape_logic/SideSensors.h"
 
 MecanumDrive drive;
+ArmController2 arm;
 
 // The SSID/password arguments are unused in access-point mode.
-WifiManager wifi("", "", drive);
+WifiManager wifi("", "", drive, arm);
 
 void setup()
 {
     Serial.begin(115200);
 
     drive.begin();
+    arm.begin();
     UART::begin();
 
     StateMachine::begin();
@@ -31,22 +34,40 @@ void setup()
 void loop()
 {
     UART::update();
-    wifi.update();
 
-
-    UART::Data sensorData =UART::getData();
-
-    if (sensorData.valid) {
-        StateMachine::update(
-            sensorData.mag1,
-            sensorData.mag2
-        );
-    } else {
-        StateMachine::update(0, 0);
-    }
     updateTapeSensors();
     checkForSideTape();
-    
 
+    const UART::Data& sensorData = UART::getData();
+    const UART::MetalData metalData = UART::getMetalData();
+    const TapeFollowerStatus tapeStatus = getTapeFollowerStatus();
+    const SideSensorStatus sideStatus = getSideSensorStatus();
+    StateMachine::Inputs inputs;
+
+    bool wifiRequested = (sensorData.mask & 0x04) != 0;
+    if (wifiRequested){
+        wifi.update();
+    }
+    inputs.metalMagnitude =
+    metalData.valid
+        ? static_cast<uint16_t>(
+            constrain(
+                metalData.frequencyHz,
+                0.0f,
+                65535.0f
+            )
+        )
+        : 0;
+
+    inputs.mag1 = sensorData.valid ? sensorData.mag1 : 0;
+    inputs.mag2 = sensorData.valid ? sensorData.mag2 : 0;
+
+    inputs.metalMagnitude = 0;
+
+    inputs.sideTapeDetected = checkForSideTape();
+    inputs.returnTapeDetected = false;
+
+    StateMachine::update(inputs);
     delay(5);
+    
 }

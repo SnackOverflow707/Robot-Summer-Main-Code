@@ -3,17 +3,22 @@
 #include "tape_logic/SideSensors.h"
 #include "comms/UART.h"
 #include "core/StateMachine.h"
+#include "robotArm/ArmController2.h"
+#include "robotArm/taskManager.h"
+#include "robotArm/armSequences/solarPanels.h"
 
 
 WifiManager::WifiManager(
     const char* ssid,
     const char* password,
-    MecanumDrive& drive
+    MecanumDrive& drive,
+    ArmController2& arm
 )
     : _ssid(ssid),
       _password(password),
       _server(80),
       _drive(drive),
+      _arm(arm),
       _enabled(false)
 {
 }
@@ -312,138 +317,141 @@ _server.on("/stateMachine/setState", HTTP_GET, [this]()
     /*
      * Return tape-follower data as JSON.
      */
-   _server.on("/status", HTTP_GET, [this]()
-{
-    const TapeFollowerStatus status =
-        getTapeFollowerStatus();
+    _server.on("/status", HTTP_GET, [this]()
+    {
+        const TapeFollowerStatus status =
+            getTapeFollowerStatus();
+        const SideSensorStatus sideStatus = getSideSensorStatus();
+        const UART::Data uartData = UART::getData();
 
-    const SideSensorStatus sideStatus =
-        getSideSensorStatus();
+        String json;
+        json.reserve(450);
 
-    const UART::Data uartData =
-        UART::getData();
+        json += "{";
 
-    const bool mag1Selected =
-        StateMachine::isMag1Selected();
+        json += "\"leftVoltage\":";
+        json += String(status.leftVoltage, 3);
 
-    const uint16_t selectedMagnitude =
-        StateMachine::getSelectedMagnitude(
-            uartData.mag1,
-            uartData.mag2
-        );
+        json += ",\"rightVoltage\":";
+        json += String(status.rightVoltage, 3);
 
-    const bool selectedDetected =
-        StateMachine::isSelectedDetected(
-            uartData.mag1,
-            uartData.mag2
-        );
+        json += ",\"leftWhite\":";
+        json += (status.leftWhite ? "true" : "false");
 
-    String json;
-    json.reserve(600);
+        json += ",\"rightWhite\":";
+        json += (status.rightWhite ? "true" : "false");
 
-    json += "{";
+        json += ",\"error\":";
+        json += String(status.error, 2);
 
-    json += "\"leftVoltage\":";
-    json += String(status.leftVoltage, 3);
+        json += ",\"pidOutput\":";
+        json += String(status.pidOutput, 2);
 
-    json += ",\"rightVoltage\":";
-    json += String(status.rightVoltage, 3);
+        json += ",\"integral\":";
+        json += String(status.integral, 2);
 
-    json += ",\"leftWhite\":";
-    json += status.leftWhite ? "true" : "false";
+        json += ",\"derivative\":";
+        json += String(status.derivative, 2);
 
-    json += ",\"rightWhite\":";
-    json += status.rightWhite ? "true" : "false";
+        json += ",\"kp\":";
+        json += String(status.kp, 2);
 
-    json += ",\"error\":";
-    json += String(status.error, 2);
+        json += ",\"ki\":";
+        json += String(status.ki, 2);
 
-    json += ",\"pidOutput\":";
-    json += String(status.pidOutput, 2);
+        json += ",\"kd\":";
+        json += String(status.kd, 2);
 
-    json += ",\"integral\":";
-    json += String(status.integral, 2);
+        json += ",\"sideSensorVoltage\":";
+        json += String(sideStatus.sensorVoltage, 3);
 
-    json += ",\"derivative\":";
-    json += String(status.derivative, 2);
+        json += ",\"sideOnTape\":";
+        json += (sideStatus.onTape ? "true" : "false");
 
-    json += ",\"kp\":";
-    json += String(status.kp, 2);
+        json += ",\"mag1\":";
+        json += String(uartData.mag1);
 
-    json += ",\"ki\":";
-    json += String(status.ki, 2);
+        json += ",\"mag2\":";
+        json += String(uartData.mag2);
 
-    json += ",\"kd\":";
-    json += String(status.kd, 2);
+        json += ",\"uartMask\":";
+        json += String(uartData.mask);
 
-    json += ",\"sideSensorVoltage\":";
-    json += String(sideStatus.sensorVoltage, 3);
+        json += ",\"uartFrameCount\":";
+        json += String(uartData.frameCount);
 
-    json += ",\"sideOnTape\":";
-    json += sideStatus.onTape ? "true" : "false";
+        json += ",\"uartValid\":";
+json += (uartData.valid ? "true" : "false");
 
-    json += ",\"mag1\":";
-    json += String(uartData.mag1);
+json += ",\"stateId\":\"";
+json += StateMachine::getStateId();
+json += "\",";
 
-    json += ",\"mag2\":";
-    json += String(uartData.mag2);
+json += "\"stateName\":\"";
+json += StateMachine::getStateName();
+json += "\",";
 
-    json += ",\"uartMask\":";
-    json += String(uartData.mask);
+json += "\"stateEnabled\":";
+json += StateMachine::isEnabled() ? "true" : "false";
+json += ",";
 
-    json += ",\"uartFrameCount\":";
-    json += String(uartData.frameCount);
+json += "\"stateElapsedMs\":";
+json += String(StateMachine::getStateElapsedMs());
+json += ",";
 
-    json += ",\"uartValid\":";
-    json += uartData.valid ? "true" : "false";
+json += "\"sideTapeCount\":";
+json += String(StateMachine::getSideTapeTriggerCount());
 
-    json += ",\"stateId\":\"";
-    json += StateMachine::getStateId();
-    json += "\"";
+const bool mag1Selected =
+    StateMachine::isMag1Selected();
 
-    json += ",\"stateName\":\"";
-    json += StateMachine::getStateName();
-    json += "\"";
-
-    json += ",\"stateEnabled\":";
-    json += StateMachine::isEnabled() ? "true" : "false";
-
-    json += ",\"stateElapsedMs\":";
-    json += String(StateMachine::getStateElapsedMs());
-
-    json += ",\"sideTapeCount\":";
-    json += String(StateMachine::getSideTapeTriggerCount());
-
-    json += ",\"switchState\":";
-    json += mag1Selected ? "true" : "false";
-
-    json += ",\"selectedFrequency\":\"";
-    json += mag1Selected ? "1 kHz" : "10 kHz";
-    json += "\"";
-
-    json += ",\"selectedMagnitude\":";
-    json += String(selectedMagnitude);
-
-    json += ",\"selectedDetected\":";
-    json += selectedDetected ? "true" : "false";
-
-    json += ",\"uartAgeMs\":";
-    json += uartData.valid
-        ? String(millis() - uartData.lastUpdateMs)
-        : String(-1);
-
-    json += ",\"robotState\":\"";
-    json += StateMachine::getStateName();
-    json += "\"";
-
-    json += "}";
-
-    _server.send(
-        200,
-        "application/json",
-        json
+const uint16_t selectedMagnitude =
+    StateMachine::getSelectedMagnitude(
+        uartData.mag1,
+        uartData.mag2
     );
-});
+
+const bool selectedDetected =
+    StateMachine::isSelectedDetected(
+        uartData.mag1,
+        uartData.mag2
+    );
+
+json += ",\"switchState\":";
+json += mag1Selected ? "true" : "false";
+
+json += ",\"selectedFrequency\":\"";
+json += mag1Selected ? "1 kHz" : "10 kHz";
+json += "\"";
+
+json += ",\"selectedMagnitude\":";
+json += String(selectedMagnitude);
+
+json += ",\"selectedDetected\":";
+json += selectedDetected ? "true" : "false";
+        json += ",\"uartAgeMs\":";
+        json += uartData.valid
+            ? String(millis() - uartData.lastUpdateMs)
+            : String(-1);
+
+        json += ",\"robotState\":\"";
+        json += StateMachine::getStateName();
+        json += "\"";
+
+        json += ",\"base\":"     + String(_arm.getBase());
+        json += ",\"shoulder\":" + String(_arm.getShoulder());
+        json += ",\"elbow\":"    + String(_arm.getElbow());
+        json += ",\"wrist\":"    + String(_arm.getWrist());
+        json += ",\"claw\":"     + String(_arm.getClaw());
+
+        json += "}";
+
+        _server.send(
+            200,
+            "application/json",
+            json
+        );
+    });
 
     /*
      * Example:
@@ -498,11 +506,145 @@ _server.on("/stateMachine/setState", HTTP_GET, [this]()
             "Page or command not found"
         );
     });
+
+    /*---------- arm stuff --------------- */
+
+    // GET /set?joint=base&angle=90 → move joint to angle
+    _server.on("/set", HTTP_GET, [this]()
+    {
+        if (!_server.hasArg("joint") || !_server.hasArg("angle")) {
+            _server.send(400, "text/plain", "Missing joint or angle.");
+            return;
+        }
+        const String joint = _server.arg("joint");
+        const int    angle = _server.arg("angle").toInt();
+        if      (joint == "base")     _arm.setBase(angle);
+        else if (joint == "shoulder") _arm.setShoulder(angle);
+        else if (joint == "elbow")    _arm.setElbow(angle);
+        else if (joint == "wrist")    _arm.setWrist(angle);
+        else if (joint == "claw")     _arm.setClaw(angle);
+        else { _server.send(400, "text/plain", "Unknown joint: " + joint); return; }
+        _server.send(200, "text/plain", "OK");
+    });
+
+    // GET /jog?joint=elbow&delta=5 → increment joint by delta degrees
+    _server.on("/jog", HTTP_GET, [this]()
+    {
+        if (!_server.hasArg("joint") || !_server.hasArg("delta")) {
+            _server.send(400, "text/plain", "Missing joint or delta.");
+            return;
+        }
+        const String joint = _server.arg("joint");
+        const int    delta = _server.arg("delta").toInt();
+
+        // Read current, add delta, re-send
+        int current = 0;
+        if      (joint == "base")     current = _arm.getBase();
+        else if (joint == "shoulder") current = _arm.getShoulder();
+        else if (joint == "elbow")    current = _arm.getElbow();
+        else if (joint == "wrist")    current = _arm.getWrist();
+        else if (joint == "claw")     current = _arm.getClaw();
+        else { _server.send(400, "text/plain", "Unknown joint: " + joint); return; }
+
+        const int target = current + delta;
+        if      (joint == "base")     _arm.setBase(target);
+        else if (joint == "shoulder") _arm.setShoulder(target);
+        else if (joint == "elbow")    _arm.setElbow(target);
+        else if (joint == "wrist")    _arm.setWrist(target);
+        else if (joint == "claw")     _arm.setClaw(target);
+
+        _server.send(200, "text/plain", "OK");
+    });
+
+    // GET /home → home all joints
+    _server.on("/home", HTTP_GET, [this]()
+    {
+        _arm.goHome();
+        _server.send(200, "text/plain", "OK");
+    });
+
+    // GET /sequence?name=solarPanel → run a named movement sequence
+    _server.on("/sequence", HTTP_GET, [this]()
+    {
+        if (!_server.hasArg("name")) {
+            _server.send(400, "text/plain", "Missing name."); return;
+        }
+        const String name = _server.arg("name");
+        if (name == "solarPanel") {
+            TaskManager tm(_arm);
+            solarPanelSequence(tm);
+            _server.send(200, "text/plain", "OK");
+        } else {
+            _server.send(400, "text/plain", "Unknown sequence: " + name);
+        }
+    });
+
+    // GET /print → print current angles to Serial (for waypoint capture)
+    _server.on("/print", HTTP_GET, [this]()
+    {
+        Serial.println("=== WAYPOINT CAPTURE ===");
+        Serial.printf("{ %d, %d, %d, %d, %d }\n",
+            _arm.getBase(), _arm.getShoulder(),
+            _arm.getElbow(), _arm.getWrist(), _arm.getClaw());
+        _server.send(200, "text/plain", "Printed to Serial.");
+    });
+
+
+
+
+
+
 }
 
 void WifiManager::showControlPage()
 {
-    const char* page = R"rawliteral(
+    // Joint rows for the arm control panel, generated from the
+    // compile-time home/max angle constants (see ArmController2.h),
+    // mirroring robotArm/armWifiManager.cpp::showControlPage().
+    const char* armJoints[]     = {"Base", "Shoulder", "Elbow", "Wrist", "Claw"};
+    const int   armHomeAngles[] = {HOME_BASE, HOME_SHOULDER, HOME_ELBOW, HOME_WRIST, HOME_CLAW};
+    const int   armMaxAngles[]  = {MAX_ANGLE, MAX_ANGLE, MAX_ANGLE, MAX_ANGLE, MAX_ANGLE_CLAW};
+
+    String armSetRows;
+    String armJogRows;
+
+    for (int i = 0; i < 5; i++) {
+        armSetRows += "<tr><td><b>";
+        armSetRows += armJoints[i];
+        armSetRows += "</b></td><td><span class='current' id='cur-";
+        armSetRows += armJoints[i];
+        armSetRows += "'>--</span>&deg;</td><td><input type='number' id='tgt-";
+        armSetRows += armJoints[i];
+        armSetRows += "' value='";
+        armSetRows += String(armHomeAngles[i]);
+        armSetRows += "' min='0' max='";
+        armSetRows += String(armMaxAngles[i]);
+        armSetRows += "'/></td><td><button class='sm' onclick=\"moveArmJoint('";
+        armSetRows += armJoints[i];
+        armSetRows += "')\">Move</button></td></tr>";
+
+        armJogRows += "<tr><td><b>";
+        armJogRows += armJoints[i];
+        armJogRows += "</b></td><td><span class='current' id='jog-cur-";
+        armJogRows += armJoints[i];
+        armJogRows += "'>--</span>&deg;</td><td><div class='jog-cell'>";
+        armJogRows += "<button class='sm red' onclick=\"jogArm('";
+        armJogRows += armJoints[i];
+        armJogRows += "',-1)\">-</button>";
+        armJogRows += "<button class='sm green' onclick=\"jogArm('";
+        armJogRows += armJoints[i];
+        armJogRows += "',+1)\">+</button>";
+        armJogRows += "</div></td></tr>";
+    }
+
+    const String armHomeAnglesJs = "[" +
+        String(HOME_BASE)     + "," +
+        String(HOME_SHOULDER) + "," +
+        String(HOME_ELBOW)    + "," +
+        String(HOME_WRIST)    + "," +
+        String(HOME_CLAW)     + "]";
+
+    String page = R"rawliteral(
 <!DOCTYPE html>
 <html lang="en">
 
@@ -577,6 +719,68 @@ void WifiManager::showControlPage()
 
         #connectionStatus {
             font-weight: bold;
+        }
+
+        /* arm joint table */
+        .jtable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .jtable th {
+            font-size: 11px;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: #6b7280;
+            padding: 4px 8px;
+            text-align: center;
+        }
+
+        .jtable td {
+            padding: 6px 8px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .current {
+            font-weight: 700;
+            font-size: 15px;
+            min-width: 48px;
+            display: inline-block;
+        }
+
+        .jog-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        button.sm {
+            min-width: 0;
+            min-height: 0;
+            padding: 4px 10px;
+            font-size: 12px;
+        }
+
+        button.red {
+            background: #dc2626;
+        }
+
+        button.green {
+            background: #16a34a;
+        }
+
+        #wp-log {
+            background: #1e293b;
+            color: #7dd3fc;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 10px;
+            border-radius: 6px;
+            min-height: 80px;
+            white-space: pre;
+            overflow-x: auto;
         }
     </style>
 </head>
@@ -811,6 +1015,63 @@ void WifiManager::showControlPage()
         <span id="commandStatus" class="value">Ready</span>
     </p>
 </div>
+)rawliteral";
+
+    page += R"rawliteral(
+<div class="panel">
+    <h2>Robot Arm</h2>
+
+    <h3>Set Joint Angles</h3>
+    <table class="jtable">
+      <tr><th>Joint</th><th>Current</th><th>Target</th><th></th></tr>
+)rawliteral";
+    page += armSetRows;
+    page += R"rawliteral(
+    </table>
+    <div class="row" style="margin-top:12px;">
+      <button class="green" onclick="homeArm()">Home Arm</button>
+    </div>
+
+    <h3 style="margin-top:16px;">Jog Joints</h3>
+    <div class="row" style="margin-bottom:12px;">
+      <span>Step size:</span>
+      <button class="sm" onclick="setArmStep(1)">1&deg;</button>
+      <button class="sm" onclick="setArmStep(5)">5&deg;</button>
+      <button class="sm" onclick="setArmStep(10)">10&deg;</button>
+      <input type="number" id="armJogStep" value="5" min="1" max="45" style="width:60px"/>
+    </div>
+    <table class="jtable">
+      <tr><th>Joint</th><th>Current</th><th>Jog</th></tr>
+)rawliteral";
+    page += armJogRows;
+    page += R"rawliteral(
+    </table>
+
+    <h3 style="margin-top:16px;">Sequences</h3>
+    <p style="font-size:13px;color:#666;margin-bottom:12px;">
+        Runs a pre-programmed movement sequence. The page will be unresponsive until it finishes.
+    </p>
+    <div class="row">
+      <button onclick="runArmSequence('solarPanel')" id="seq-btn-solarPanel">Solar Panels</button>
+      <span class="status" id="arm-seq-status"></span>
+    </div>
+
+    <h3 style="margin-top:16px;">Waypoint Capture</h3>
+    <p style="font-size:13px;color:#666;margin-bottom:12px;">
+        Jog the arm to a position, name it, and capture. The struct is printed to Serial and logged below.
+    </p>
+    <div class="row">
+      <input type="text" id="wpName" placeholder="e.g. PICK_APPROACH" style="width:200px"/>
+      <button class="green" onclick="captureWaypoint()">Capture</button>
+      <button onclick="clearWaypointLog()">Clear</button>
+    </div>
+    <div style="margin-top:12px;">
+      <div id="wp-log">// waypoints will appear here</div>
+    </div>
+</div>
+)rawliteral";
+
+    page += R"rawliteral(
 <h2>IR Sensor</h2>
 
 <p>Switch pin: <span id="switchState">--</span></p>
@@ -881,6 +1142,76 @@ void WifiManager::showControlPage()
 
 <script>
 let pidInputsInitialized = false;
+
+// ── Robot Arm ───────────────────────────────────────────
+const ARM_JOINTS = ["Base","Shoulder","Elbow","Wrist","Claw"];
+const ARM_HOME_ANGLES = __ARM_HOME_ANGLES__;
+
+async function armCmd(path) {
+    try {
+        const r = await fetch(path);
+        return r.ok;
+    } catch { return false; }
+}
+
+async function moveArmJoint(joint) {
+    const input = document.getElementById("tgt-" + joint);
+    const angle = Math.round(Number(input.value));
+    input.value = angle;
+    await armCmd("/set?joint=" + joint.toLowerCase() + "&angle=" + angle);
+}
+
+async function homeArm() {
+    await armCmd("/home");
+    ARM_JOINTS.forEach((j, i) => {
+        const el = document.getElementById("tgt-" + j);
+        if (el) el.value = ARM_HOME_ANGLES[i];
+    });
+}
+
+function setArmStep(n) {
+    document.getElementById("armJogStep").value = n;
+}
+
+async function jogArm(joint, direction) {
+    const step = parseInt(document.getElementById("armJogStep").value) || 5;
+    const delta = direction * step;
+    await armCmd("/jog?joint=" + joint.toLowerCase() + "&delta=" + delta);
+}
+
+async function runArmSequence(name) {
+    const statusEl = document.getElementById("arm-seq-status");
+    const btn = document.getElementById("seq-btn-" + name);
+    if (btn) btn.disabled = true;
+    statusEl.textContent = "Running…";
+    const ok = await armCmd("/sequence?name=" + name);
+    statusEl.textContent = ok ? "Done!" : "Failed.";
+    if (btn) btn.disabled = false;
+    setTimeout(() => { statusEl.textContent = ""; }, 3000);
+}
+
+async function captureWaypoint() {
+    const name = document.getElementById("wpName").value.trim() || "WAYPOINT";
+    const r = await fetch("/status", {cache:"no-store"});
+    const d = await r.json();
+
+    const line =
+        "const ArmPose " + name + " = { " +
+        (d.base||0) + ", " + (d.shoulder||0) + ", " +
+        (d.elbow||0) + ", " + (d.wrist||0) + ", " +
+        (d.claw||0) + " };";
+
+    const log = document.getElementById("wp-log");
+    if (log.textContent === "// waypoints will appear here") log.textContent = "";
+    log.textContent += line + "\n";
+
+    await armCmd("/print");
+}
+
+function clearWaypointLog() {
+    document.getElementById("wp-log").textContent = "// waypoints will appear here";
+}
+
 async function sendStateRequest(url)
 {
     try
@@ -1116,6 +1447,15 @@ document.querySelectorAll(".state-node").forEach(node =>
     );
 });
 
+        ARM_JOINTS.forEach(j => {
+            const key = j.toLowerCase();
+            const val = data[key] !== undefined ? data[key] : "--";
+            const el1 = document.getElementById("cur-" + j);
+            const el2 = document.getElementById("jog-cur-" + j);
+            if (el1) el1.textContent = val;
+            if (el2) el2.textContent = val;
+        });
+
         document.getElementById(
             "connectionStatus"
         ).textContent = "ESP32 connected";
@@ -1167,6 +1507,12 @@ async function updatePID()
     await sendCommand(command);
 }
 
+
+
+
+
+
+
 // Request updated values five times per second.
 setInterval(updateStatus, 200);
 
@@ -1176,6 +1522,8 @@ updateStatus();
 </body>
 </html>
 )rawliteral";
+
+    page.replace("__ARM_HOME_ANGLES__", armHomeAnglesJs);
 
     _server.send(
         200,

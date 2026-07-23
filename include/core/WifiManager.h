@@ -4,12 +4,15 @@
 #include <WebServer.h>
 #include "actuators/MecanumDrive.h"
 
+class ArmController2;
+
 class WifiManager {
 public:
     WifiManager(
         const char* ssid,
         const char* password,
-        MecanumDrive& drive
+        MecanumDrive& drive,
+        ArmController2& arm
     );
 
     void begin();
@@ -26,6 +29,7 @@ private:
 
     WebServer _server;
     MecanumDrive& _drive;
+    ArmController2& _arm;
 
     bool _enabled;
 
