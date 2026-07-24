@@ -180,7 +180,8 @@ static void changeState(State newState)
             break;
 
         case State::TOWER_RAM:
-            //TowerRam::begin();
+            TowerRam::begin();
+            TowerRam::start();
             break;
 
         case State::TOWER_BUILD:
@@ -409,8 +410,7 @@ void update(const Inputs& inputs)
         case State::TAPE_FOLLOW_TO_TOWER:
             tapeFollowStep();
 
-            if (consumeSideTapeTrigger(inputs.sideTapeDetected) &&
-                sideTapeTriggerCount >= 2)
+            if (consumeSideTapeTrigger(inputs.sideTapeDetected))
             {
                 changeState(State::TOWER_RAM);
             }
