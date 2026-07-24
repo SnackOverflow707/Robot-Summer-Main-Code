@@ -4,6 +4,7 @@
  */
 #include "TapeFollower.h"
 #include "actuators/MecanumDrive.h"
+#include <Arduino.h>
 
 // UPDATE!
 #define LEFT_SENSOR_PIN 14

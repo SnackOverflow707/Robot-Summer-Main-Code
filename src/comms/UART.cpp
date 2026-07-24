@@ -7,6 +7,7 @@ namespace UART
 {
 
 static constexpr uint8_t MAX_PAYLOAD = 32;
+static constexpr uint8_t METAL_DETECTOR_COUNT = 2;
 
 static constexpr int UART_NUMBER = 1;
 static constexpr int UART_RX_PIN = 16;
@@ -47,12 +48,21 @@ static Data latestData =
     .valid = false
 };
 
-static MetalData latestMetalData =
+// One entry for detector 0 and one for detector 1.
+static MetalData latestMetalData[METAL_DETECTOR_COUNT] =
 {
-    .frequencyHz = 0.0f,
-    .frameCount = 0,
-    .lastUpdateMs = 0,
-    .valid = false
+    {
+        .frequencyHz = 0.0f,
+        .frameCount = 0,
+        .lastUpdateMs = 0,
+        .valid = false
+    },
+    {
+        .frequencyHz = 0.0f,
+        .frameCount = 0,
+        .lastUpdateMs = 0,
+        .valid = false
+    }
 };
 
 // --------------------------------------------------
@@ -72,7 +82,6 @@ static uint8_t calculateChecksum()
 {
     uint8_t checksum = 0;
 
-    // This must match the checksum used by sendFrame().
     checksum ^= frameType;
     checksum ^= payloadLength;
 
@@ -108,20 +117,41 @@ static void processIRFrame()
 
 static void processMetalFrame()
 {
-    if (payloadLength != sizeof(float))
+    // Payload:
+    // byte 0: detector ID
+    // bytes 1-4: frequency as a float
+    static constexpr uint8_t EXPECTED_LENGTH =
+        1 + sizeof(float);
+
+    if (payloadLength != EXPECTED_LENGTH)
     {
         return;
     }
 
+    const uint8_t detectorId = payload[0];
+
+    if (detectorId >= METAL_DETECTOR_COUNT)
+    {
+        return;
+    }
+
+    float frequencyHz = 0.0f;
+
     memcpy(
-        &latestMetalData.frequencyHz,
-        payload,
+        &frequencyHz,
+        &payload[1],
         sizeof(float)
     );
 
-    latestMetalData.frameCount++;
-    latestMetalData.lastUpdateMs = millis();
-    latestMetalData.valid = true;
+    latestMetalData[detectorId].frequencyHz =
+        frequencyHz;
+
+    latestMetalData[detectorId].frameCount++;
+
+    latestMetalData[detectorId].lastUpdateMs =
+        millis();
+
+    latestMetalData[detectorId].valid = true;
 }
 
 static void processCompleteFrame()
@@ -137,7 +167,6 @@ static void processCompleteFrame()
             break;
 
         default:
-            // Ignore unknown frame types.
             break;
     }
 }
@@ -258,14 +287,24 @@ Data getData()
     return latestData;
 }
 
-MetalData getMetalData()
+MetalData getMetalData(uint8_t detectorId)
 {
-    return latestMetalData;
+    if (detectorId >= METAL_DETECTOR_COUNT)
+    {
+        return MetalData
+        {
+            .frequencyHz = 0.0f,
+            .frameCount = 0,
+            .lastUpdateMs = 0,
+            .valid = false
+        };
+    }
+
+    return latestMetalData[detectorId];
 }
 
 bool isMag1Selected()
 {
-    // Example: bit 2 of the UART mask selects mag1.
     return (latestData.mask & 0x04) != 0;
 }
 

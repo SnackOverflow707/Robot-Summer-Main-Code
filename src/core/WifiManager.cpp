@@ -1135,6 +1135,57 @@ void WifiManager::showControlPage()
         <button onclick="stopStateMachine()">
             Stop
         </button>
+        <div class="state-controls">
+
+    <button onclick="selectRobotState('tape-rock')">
+        Tape Follow Rock Check
+    </button>
+
+    <button onclick="selectRobotState('rock-grab')">
+        Rock Grab
+    </button>
+
+    <button onclick="selectRobotState('grab-tower-piece')">
+        Grab First Tower Piece
+    </button>
+
+    <button onclick="selectRobotState('tape-to-tower')">
+        Tape Follow To Tower
+    </button>
+
+    <button onclick="selectRobotState('tower-ram')">
+        Tower Ram
+    </button>
+
+    <button onclick="selectRobotState('tower-build')">
+        Tower Build
+    </button>
+
+    <button onclick="selectRobotState('return-to-tape')">
+        Return To Tape
+    </button>
+
+    <button onclick="selectRobotState('slow-tape')">
+        Slow Tape Following
+    </button>
+
+    <button onclick="selectRobotState('ir-alligning')">
+        IR Aligning
+    </button>
+
+    <button onclick="selectRobotState('rip-panel')">
+        Rip Solar Panel
+    </button>
+
+    <button onclick="selectRobotState('endpoint')">
+        Endpoint
+    </button>
+
+    <button onclick="selectRobotState('stopped')">
+        Stopped
+    </button>
+
+</div>
     </div>
 
     <p id="stateMessage"></p>

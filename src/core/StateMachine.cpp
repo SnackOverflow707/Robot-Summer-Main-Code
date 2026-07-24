@@ -349,14 +349,21 @@ void update(const Inputs& inputs)
     const bool irDetected =
         isSelectedDetected(inputs.mag1, inputs.mag2);
 
+        const bool metalDetectedSensor0 =
+        inputs.metalMagnitude0 > METAL_THRESHOLD;
+    
+    const bool metalDetectedSensor1 =
+        inputs.metalMagnitude1 > METAL_THRESHOLD;
+    
+    // True if either detector sees metal.
     const bool metalDetected =
-        inputs.metalMagnitude > METAL_THRESHOLD;
-
+        metalDetectedSensor0 || metalDetectedSensor1;
+    
     if (!irDetected)
     {
         irTriggerArmed = true;
     }
-
+    
     if (!metalDetected)
     {
         metalTriggerArmed = true;

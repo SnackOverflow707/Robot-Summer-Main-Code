@@ -11,6 +11,7 @@ Off tape when voltage high, on tape when voltage low
 
 #include "SideSensors.h"
 #include "actuators/MecanumDrive.h"
+#include <Arduino.h>
 
 #define SENSOR_PIN 10 // UPDATE!
 #define MAX_ADC_VALUE 8191

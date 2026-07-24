@@ -13,7 +13,6 @@ struct Data
 
     uint32_t frameCount;
     unsigned long lastUpdateMs;
-
     bool valid;
 };
 
@@ -23,7 +22,6 @@ struct MetalData
 
     uint32_t frameCount;
     unsigned long lastUpdateMs;
-
     bool valid;
 };
 
@@ -31,7 +29,9 @@ void begin();
 void update();
 
 Data getData();
-MetalData getMetalData();
+
+// Return the requested metal detector.
+MetalData getMetalData(uint8_t detectorId);
 
 bool isMag1Selected();
 bool isMag2Selected();

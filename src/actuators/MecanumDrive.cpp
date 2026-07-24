@@ -1,11 +1,37 @@
 #include "actuators/MecanumDrive.h"
 #include "config/pins.h"
+#include <Arduino.h>
+
+#include "actuators/MecanumDrive.h"
+#include "config/pins.h"
 
 MecanumDrive::MecanumDrive()
-  : frontLeft(FL_A, FL_B, 0, 1),
-    frontRight(FR_A, FR_B, 2, 3),
-    backLeft(BL_A, BL_B, 4, 5),
-    backRight(BR_A, BR_B, 6, 7) {}
+    : frontLeft(
+          FL_A,
+          FL_B,
+          MCPWM_UNIT_0,
+          MCPWM_TIMER_0
+      ),
+      frontRight(
+          FR_A,
+          FR_B,
+          MCPWM_UNIT_0,
+          MCPWM_TIMER_1
+      ),
+      backLeft(
+          BL_A,
+          BL_B,
+          MCPWM_UNIT_0,
+          MCPWM_TIMER_2
+      ),
+      backRight(
+          BR_A,
+          BR_B,
+          MCPWM_UNIT_1,
+          MCPWM_TIMER_0
+      )
+{
+}
 
 void MecanumDrive::begin() {
   frontLeft.begin();

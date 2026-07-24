@@ -36,7 +36,8 @@ struct Inputs
     uint16_t mag1;
     uint16_t mag2;
 
-    uint16_t metalMagnitude;
+    uint16_t metalMagnitude0;
+    uint16_t metalMagnitude1;
 
     bool sideTapeDetected;
     bool returnTapeDetected;
