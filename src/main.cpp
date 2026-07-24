@@ -9,6 +9,7 @@
 #include "tape_logic/SideSensors.h"
 
 MecanumDrive drive;
+//ArmController2 arm;
 ArmController2 arm;
 
 // The SSID/password arguments are unused in access-point mode.
@@ -19,7 +20,7 @@ void setup()
     Serial.begin(115200);
 
     drive.begin();
-    arm.begin();
+    //arm.begin();
     UART::begin();
 
     StateMachine::begin();

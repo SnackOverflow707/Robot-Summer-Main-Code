@@ -7,11 +7,11 @@
 #define FR_B 8 //15
 
 
-#define BR_A 3 //42
-#define BR_B 4 //41
-
 #define BR_A 5 //42
 #define BR_B 6 //41
+
+#define BL_A 3 //42
+#define BL_B 4 //41
 
 //UART link 
 #define SENSOR_UART_TX 17

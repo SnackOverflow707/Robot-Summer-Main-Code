@@ -15,7 +15,7 @@
 #define CLAW_SERVO  5
 
 // Pin definitions for the servos
-#define PIN_BASE   48 
+#define PIN_BASE   18 
 #define PIN_SHOULDER_A 47
 #define PIN_SHOULDER_B 38
 #define PIN_ELBOW     39 //temp
