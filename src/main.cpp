@@ -21,7 +21,7 @@ void setup()
     Serial.begin(115200);
 
     drive.begin();
-    //arm.begin();
+    arm.begin();
     UART::begin();
 
     StateMachine::begin();
