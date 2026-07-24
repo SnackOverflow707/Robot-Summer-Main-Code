@@ -12,8 +12,7 @@
 MecanumDrive drive;
 //ArmController2 arm;
 ArmController2 arm;
-TaskManager taskManager;
-
+TaskManager taskManager(arm);
 // The SSID/password arguments are unused in access-point mode.
 WifiManager wifi("", "", drive, arm);
 

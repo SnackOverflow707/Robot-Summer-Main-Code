@@ -12,7 +12,7 @@ static const ArmPose GRAB_PANEL = {90, 90, 90, 90, true}; //update after testing
 static const ArmPose RETRACT = {90, 120, 30, 110, true}; //update after testing
 static const ArmPose RECENTER = {0, HOME_SHOULDER, HOME_ELBOW, HOME_WRIST, false};
 
-void solarPanelSequence(TaskManager& taskManager) {
+inline void solarPanelSequence(TaskManager& taskManager) {
 
     taskManager.executeMove(ORIENT); 
     taskManager.executeMove(GRAB_PANEL); 
