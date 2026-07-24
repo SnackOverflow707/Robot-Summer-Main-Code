@@ -35,7 +35,7 @@ namespace StateMachine
 // --------------------------------------------------
 
 static constexpr uint16_t MAG1_THRESHOLD = 20000;
-static constexpr uint16_t MAG2_THRESHOLD = 2000;
+static constexpr uint16_t MAG2_THRESHOLD = 3000;
 static constexpr uint16_t METAL_THRESHOLD = 50;
 
 static constexpr int STRAFE_SPEED = 150;

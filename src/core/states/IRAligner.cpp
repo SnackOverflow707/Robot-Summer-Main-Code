@@ -33,7 +33,7 @@ static constexpr unsigned long UART_TIMEOUT_MS = 250;
 
 // Final detection thresholds
 static constexpr uint16_t MAG1_FOUND_THRESHOLD = 20000;
-static constexpr uint16_t MAG2_FOUND_THRESHOLD = 2000;
+static constexpr uint16_t MAG2_FOUND_THRESHOLD = 3000;
 
 // Slow down when the signal reaches these values
 static constexpr uint16_t MAG1_NEAR_THRESHOLD = 18000;
