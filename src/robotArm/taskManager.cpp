@@ -23,6 +23,11 @@ void TaskManager::executeMove(const ArmPose& waypoint) {
     }
 }
 
+bool TaskManager::checkTime(unsigned long startTime, unsigned long max_time) {
+    unsigned long currentTime = millis();
+    return (currentTime - startTime) <= max_time;
+}
+
 bool TaskManager::objectGripCheckSequence(const ArmPose& objectLoc, int nAttempts) {
     delay(DELAY);
 

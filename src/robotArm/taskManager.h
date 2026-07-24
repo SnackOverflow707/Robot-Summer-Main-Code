@@ -9,7 +9,6 @@
 #define BACKUP 30 //degrees to move the elbow upwards 
 #define DELAY 1000 //ms, for the object detection sequence 
 #define GRIP_CHECK_DURATION 1000 //ms 
-#define NATTEMPTS 3 //total attempts including the initial attempt, if failed 
 
 class TaskManager {
 private:
@@ -20,6 +19,7 @@ public:
     void executeMove(const ArmPose& waypoint); 
     void executeSequence(const std::vector<ArmPose>& waypoints); 
     bool objectGripCheckSequence(const ArmPose& objectLoc, int nAttempts);
+    bool checkTime(unsigned long startTime, unsigned long max_time); 
 
 }; 
 
