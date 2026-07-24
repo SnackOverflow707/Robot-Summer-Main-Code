@@ -206,14 +206,36 @@ private:
     int      _inputMaxAngle;
 
     // ── angle (°) → pulse width (µs) ───────────────────
-    uint16_t _angleToUs(int angle) const {
-        return (uint16_t)map(angle, 0, 180, _minUs, _maxUs);
-    }
+    uint16_t _angleToUs(int angle) const
+{
+    angle = constrain(angle, _inputMinAngle, _inputMaxAngle);
+
+    return static_cast<uint16_t>(
+        map(
+            angle,
+            _inputMinAngle,
+            _inputMaxAngle,
+            _minUs,
+            _maxUs
+        )
+    );
+}
 
     // ── pulse width (µs) → angle (°) ───────────────────
-    int _usToAngle(uint16_t us) const {
-        return (int)map(us, _minUs, _maxUs, 0, 180);
-    }
+    int _usToAngle(uint16_t us) const
+{
+    us = constrain(us, _minUs, _maxUs);
+
+    return static_cast<int>(
+        map(
+            us,
+            _minUs,
+            _maxUs,
+            _inputMinAngle,
+            _inputMaxAngle
+        )
+    );
+}
 
     // ── pulse width (µs) → LEDC duty ticks ─────────────
     // Period = 1/50Hz = 20,000 µs
