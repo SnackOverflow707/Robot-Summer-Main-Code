@@ -91,7 +91,8 @@ private:
     const int omegas[NSERVOS] = {OMEGA_BASE, OMEGA_SHOULDER, OMEGA_SHOULDER, OMEGA_ELBOW, OMEGA_WRIST, OMEGA_CLAW}; 
     ArmServo* servos[NSERVOS];  //no initialization because it's dangerous 
 
-    void moveJoint(ArmServo& servo, int angle, int omega, int offset); 
+    void moveJoint(ArmServo& servo, int angle, int omega, int offset);
+    void moveJointPair(ArmServo& servoA, ArmServo& servoB, int angle, int omega, int offset);
     void moveClaw(ArmServo& servo, int angle, int omega);
 
 };
