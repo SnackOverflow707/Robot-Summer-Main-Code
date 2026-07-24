@@ -20,10 +20,11 @@ void setup()
     Serial.begin(115200);
 
     drive.begin();
-    //arm.begin();
+    arm.begin();
     UART::begin();
 
     StateMachine::begin();
+
 
     pinMode(14, INPUT);
     pinMode(13, INPUT);

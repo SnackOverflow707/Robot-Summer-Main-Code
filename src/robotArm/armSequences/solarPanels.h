@@ -14,7 +14,7 @@ void solarPanelSequence(TaskManager& taskManager) {
 
     taskManager.executeMove(ORIENT); 
     taskManager.executeMove(GRAB_PANEL); 
-    taskManager.objectGripCheckSequence(GRAB_PANEL, NATTEMPTS);
+    //taskManager.objectGripCheckSequence(GRAB_PANEL, NATTEMPTS);
     taskManager.executeMove(RETRACT);  
     taskManager.executeMove(RECENTER); 
 
