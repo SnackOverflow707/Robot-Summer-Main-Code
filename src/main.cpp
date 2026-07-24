@@ -7,10 +7,12 @@
 #include "robotArm/ArmController2.h"
 #include "tape_logic/TapeFollower.h"
 #include "tape_logic/SideSensors.h"
+#include "robotArm/taskManager.h"
 
 MecanumDrive drive;
 //ArmController2 arm;
 ArmController2 arm;
+TaskManager taskManager;
 
 // The SSID/password arguments are unused in access-point mode.
 WifiManager wifi("", "", drive, arm);
@@ -20,11 +22,10 @@ void setup()
     Serial.begin(115200);
 
     drive.begin();
-    arm.begin();
+    //arm.begin();
     UART::begin();
 
     StateMachine::begin();
-
 
     pinMode(14, INPUT);
     pinMode(13, INPUT);

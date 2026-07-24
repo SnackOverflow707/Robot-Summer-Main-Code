@@ -9,7 +9,7 @@
 // mechanisms/RockGrabber.h
 // mechanisms/TowerPieceGrabber.h
 // mechanisms/TowerRam.h
-// mechanisms/TowerBuilder.h
+// mechanisms/TowerBuilder.h 
 // mechanisms/TapeReturn.h
 // mechanisms/IRAligner.h
 // mechanisms/SolarPanelRipper.h
@@ -206,7 +206,8 @@ static void changeState(State newState)
             break;
 
         case State::RIP_SOLAR_PANEL:
-            //SolarPanelRipper::begin();
+            SolarPanelRipper::begin();
+            SolarPanelRipper::start();
             break;
 
         case State::ENDPOINT:
@@ -469,12 +470,18 @@ void update(const Inputs& inputs)
         
 
         case State::RIP_SOLAR_PANEL:
-            /*SolarPanelRipper::update();
+           SolarPanelRipper::update();
 
             if (SolarPanelRipper::isFinished())
             {
                 changeState(State::ENDPOINT);
-            }*/
+            }
+            else if (SolarPanelRipper::hasFailed())
+            {
+                changeState(State::STOPPED);
+            }
+    
+        break;
             break;
 
         case State::ENDPOINT:
