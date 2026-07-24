@@ -25,8 +25,8 @@
 #define PIN_SWITCH 17
 
 // Home position angles
-#define HOME_BASE     0
-#define HOME_SHOULDER 140
+#define HOME_BASE     90
+#define HOME_SHOULDER 160
 #define HOME_ELBOW    80
 #define HOME_WRIST    0
 #define HOME_CLAW      0 // fully open 

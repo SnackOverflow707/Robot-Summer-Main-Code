@@ -15,6 +15,7 @@ private:
     ArmController2& _arm; 
 
 public: 
+
     TaskManager(ArmController2& armRef); 
     void executeMove(const ArmPose& waypoint); 
     void executeSequence(const std::vector<ArmPose>& waypoints); 
