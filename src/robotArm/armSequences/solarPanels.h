@@ -7,10 +7,10 @@
 #define PANEL_NATTEMPTS 3 //total attempts including the initial attempt, if failed 
 
 //positions to reach the solar panels
-static const ArmPose ORIENT = {90, HOME_SHOULDER, HOME_ELBOW, HOME_WRIST, false}; //base turns 90deg, claw is open
-static const ArmPose GRAB_PANEL = {90, 90, 90, 90, true}; //update after testing
-static const ArmPose RETRACT = {90, 120, 30, 110, true}; //update after testing
-static const ArmPose RECENTER = {0, HOME_SHOULDER, HOME_ELBOW, HOME_WRIST, false};
+static const ArmPose ORIENT = { 0, 85, 205, 0, false}; //base turns 90deg, claw is open
+static const ArmPose GRAB_PANEL = {0, 85, 205, 0, true}; //update after testing
+static const ArmPose RETRACT = {0, 160, 205, 0, true}; //update after testing
+static const ArmPose RECENTER = {90, 160, 205, 0,true};
 
 void solarPanelSequence(TaskManager& taskManager) {
 
