@@ -131,8 +131,10 @@ static void stopAllMechanisms()
     TowerRam::stop();
     TowerBuilder::stop();
     TapeReturn::stop();
+    */
+    SolarPanelRipper::stop();
     IRAligner::stop();
-    SolarPanelRipper::stop();*/
+    TowerRam::stop();
     IRAligner::stop();
 }
 
