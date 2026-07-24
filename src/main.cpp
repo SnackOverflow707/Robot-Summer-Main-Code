@@ -40,7 +40,6 @@ void loop()
     checkForSideTape();
 
     const UART::Data& sensorData = UART::getData();
-    const UART::MetalData metalData = UART::getMetalData();
     const TapeFollowerStatus tapeStatus = getTapeFollowerStatus();
     const SideSensorStatus sideStatus = getSideSensorStatus();
     StateMachine::Inputs inputs;
@@ -49,16 +48,26 @@ void loop()
     if (wifiRequested){*/
         wifi.update();
     //}
-    inputs.metalMagnitude =
-    metalData.valid
-        ? static_cast<uint16_t>(
-            constrain(
-                metalData.frequencyHz,
-                0.0f,
-                65535.0f
-            )
-        )
-        : 0;
+    const UART::MetalData metal0 = UART::getMetalData(0);
+    const UART::MetalData metal1 = UART::getMetalData(1);
+    
+    inputs.metalMagnitude0 =
+        metal0.valid
+            ? static_cast<uint16_t>(
+                constrain(
+                    metal0.frequencyHz,
+                    0.0f,
+                    65535.0f))
+            : 0;
+    
+    inputs.metalMagnitude1 =
+        metal1.valid
+            ? static_cast<uint16_t>(
+                constrain(
+                    metal1.frequencyHz,
+                    0.0f,
+                    65535.0f))
+            : 0;
 
     inputs.mag1 = sensorData.valid ? sensorData.mag1 : 0;
     inputs.mag2 = sensorData.valid ? sensorData.mag2 : 0;

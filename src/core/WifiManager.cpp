@@ -1273,7 +1273,7 @@ async function sendStateRequest(url)
         document.getElementById("stateMessage").textContent =
             message;
 
-        await updateStateMachineDisplay();
+        await updateStatus();
     }
     catch (error)
     {
