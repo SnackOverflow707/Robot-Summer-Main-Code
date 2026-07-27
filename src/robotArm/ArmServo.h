@@ -34,7 +34,7 @@
 #define ANALOG_MIN_US    1000
 #define ANALOG_MAX_US    2000
 #define ANALOG_MIN_ANGLE    0
-#define ANALOG_MAX_ANGLE  180
+#define ANALOG_MAX_ANGLE  180 //270? 
 
 #define ARM_SERVO_FREQ_HZ   50   // standard 50 Hz (20 ms period)
 #define ARM_SERVO_TIMER_BITS 12  
@@ -74,18 +74,6 @@ public:
         ledcSetup(_channel, ARM_SERVO_FREQ_HZ, ARM_SERVO_TIMER_BITS);
         ledcAttachPin(_pin, _channel);
         _attached = true;
-    }
-
-    // ── attach(assumedStartAngle) ───────────────────────
-    // Same as attach(), but also seeds _currentAngle with an assumed
-    // starting position instead of leaving it at -1. The ESP32 can't read
-    // a servo's actual position, so without this the first moveTo() call
-    // (e.g. during homing) can't know how far it has to travel and jumps
-    // straight to the target instead of ramping. Pass whatever angle the
-    // joint is expected to rest at when powered on.
-    void attach(int assumedStartAngle) {
-        attach();
-        _currentAngle = constrain(assumedStartAngle, _minAngle, _maxAngle);
     }
 
     /*int angleToBits(int angle) const {
@@ -189,13 +177,14 @@ public:
         return _angleToUs(_currentAngle);
     }
 
-    // ── setLimits(minAngle, maxAngle) ───────────────────
-    // Restrict the servo's range. All write() and moveTo()
-    // calls will be clamped to [minAngle, maxAngle].
+    // ── setLimits() ──────────────────────────────────────
+    // Resets the servo's range back to the [minAngle, maxAngle]
+    // passed to the constructor. All write() and moveTo() calls
+    // will be clamped to that range.
     // Call before attach() or after — order doesn't matter.
-    void setLimits(int minAngle, int maxAngle) {
-        _minAngle = constrain(minAngle, _inputMinAngle, _inputMaxAngle);
-        _maxAngle = constrain(maxAngle, _inputMinAngle, _inputMaxAngle);
+    void setLimits() {
+        _minAngle = _inputMinAngle;
+        _maxAngle = _inputMaxAngle;
     }
 
     // ── detach() ────────────────────────────────────────

@@ -31,14 +31,7 @@
 #define HOME_WRIST    0
 #define HOME_CLAW      0 // fully open
 
-// Assumed servo angles at power-up for smoother .begin() 
-#define STARTUP_BASE     0
-#define STARTUP_SHOULDER 180
-#define STARTUP_ELBOW    135
-#define STARTUP_WRIST    90
-#define STARTUP_CLAW     0
-
-//offset angles based on servo mounting, if needed 
+//offset angles based on servo mounting, if needed
 #define BASE_OFFSET 0 
 #define SHOULDER_OFFSET 5  
 #define ELBOW_OFFSET 0
@@ -94,7 +87,6 @@ ArmServo _wristServo;
 ArmServo _clawServo;
 
     const int homeArray[NSERVOS] = {HOME_BASE, HOME_SHOULDER, MAX_ANGLE - HOME_SHOULDER, HOME_ELBOW, HOME_WRIST, HOME_CLAW};
-    const int startupArray[NSERVOS] = {STARTUP_BASE, STARTUP_SHOULDER, MAX_ANGLE - STARTUP_SHOULDER, STARTUP_ELBOW, STARTUP_WRIST, STARTUP_CLAW};
     const int offsets[NSERVOS] = {BASE_OFFSET, SHOULDER_OFFSET, SHOULDER_OFFSET, ELBOW_OFFSET, WRIST_OFFSET, CLAW_OFFSET};
     const int omegas[NSERVOS] = {OMEGA_BASE, OMEGA_SHOULDER, OMEGA_SHOULDER, OMEGA_ELBOW, OMEGA_WRIST, OMEGA_CLAW}; 
     ArmServo* servos[NSERVOS];  //no initialization because it's dangerous 
