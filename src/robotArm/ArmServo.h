@@ -34,7 +34,7 @@
 #define ANALOG_MIN_US    1000
 #define ANALOG_MAX_US    2000
 #define ANALOG_MIN_ANGLE    0
-#define ANALOG_MAX_ANGLE  180
+#define ANALOG_MAX_ANGLE  180 //270? 
 
 #define ARM_SERVO_FREQ_HZ   50   // standard 50 Hz (20 ms period)
 #define ARM_SERVO_TIMER_BITS 12  

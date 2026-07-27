@@ -48,7 +48,7 @@ ArmController2::ArmController2()
           ANALOG_MIN_US,
           ANALOG_MAX_US,
           ANALOG_MIN_ANGLE,
-          ANALOG_MAX_ANGLE),
+          MAX_ANGLE_CLAW),
 
       clawSwitch(PIN_SWITCH)
 {
