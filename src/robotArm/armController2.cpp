@@ -70,7 +70,7 @@ void ArmController2::begin()
     ESP32PWM::allocateTimer(3);
 
     for (int i = 0; i < NSERVOS; i++) {
-        servos[i]->attach(startupArray[i] + offsets[i]);
+        servos[i]->attach();
     }
 
     configureLimits(); 

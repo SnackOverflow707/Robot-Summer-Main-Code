@@ -76,18 +76,6 @@ public:
         _attached = true;
     }
 
-    // ── attach(assumedStartAngle) ───────────────────────
-    // Same as attach(), but also seeds _currentAngle with an assumed
-    // starting position instead of leaving it at -1. The ESP32 can't read
-    // a servo's actual position, so without this the first moveTo() call
-    // (e.g. during homing) can't know how far it has to travel and jumps
-    // straight to the target instead of ramping. Pass whatever angle the
-    // joint is expected to rest at when powered on.
-    void attach(int assumedStartAngle) {
-        attach();
-        _currentAngle = constrain(assumedStartAngle, _minAngle, _maxAngle);
-    }
-
     /*int angleToBits(int angle) const {
         return (int)((float)angle / 180.0f * (float)((1 << ARM_SERVO_TIMER_BITS) - 1));
     }
