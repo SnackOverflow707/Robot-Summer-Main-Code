@@ -26,8 +26,16 @@
  */
 
 // ── Default pulse range (µs) for MG996R 
-#define ARM_SERVO_MIN_US   1000
-#define ARM_SERVO_MAX_US  2000
+#define DS3235_MIN_US     500
+#define DS3235_MAX_US    2500
+#define DS3235_MIN_ANGLE    0
+#define DS3235_MAX_ANGLE  270
+
+#define ANALOG_MIN_US    1000
+#define ANALOG_MAX_US    2000
+#define ANALOG_MIN_ANGLE    0
+#define ANALOG_MAX_ANGLE  180
+
 #define ARM_SERVO_FREQ_HZ   50   // standard 50 Hz (20 ms period)
 #define ARM_SERVO_TIMER_BITS 12  
 
@@ -41,22 +49,22 @@ public:
     // channel  : LEDC channel (0–15), unique per servo
     // minUs    : pulse width for 0°   (default 1000 µs)
     // maxUs    : pulse width for 180° (default 2000 µs)
-ArmServo(int pin,
-         int channel,
-         int minUs = ARM_SERVO_MIN_US,
-         int maxUs = ARM_SERVO_MAX_US,
-         int minAngle = MIN_ANGLE,      // ← add these
-         int maxAngle = MAX_ANGLE)
-    : _pin(pin),
-      _channel(channel),
-      _minUs(minUs),
-      _maxUs(maxUs),
-      _currentAngle(-1),
-      _attached(false),
-      _minAngle(minAngle),       // ← initialize directly
-      _maxAngle(maxAngle),
-      _inputMinAngle(minAngle),  // ← store as the allowed range for setLimits
-      _inputMaxAngle(maxAngle)
+    ArmServo(int pin,
+        int channel,
+        int minUs,
+        int maxUs,
+        int minAngle,
+        int maxAngle)
+   : _pin(pin),
+     _channel(channel),
+     _minUs(minUs),
+     _maxUs(maxUs),
+     _currentAngle(-1),
+     _attached(false),
+     _minAngle(minAngle),
+     _maxAngle(maxAngle),
+     _inputMinAngle(minAngle),
+     _inputMaxAngle(maxAngle)
     {}
 
     // ── attach() ────────────────────────────────────────

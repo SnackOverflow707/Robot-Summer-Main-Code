@@ -86,12 +86,12 @@ public:
 
 private:
 
-    ArmServo _baseServo = ArmServo(PIN_BASE, BASE_SERVO);
-    ArmServo _shoulderAServo = ArmServo(PIN_SHOULDER_A, SHOULDERA_SERVO);
-    ArmServo _shoulderBServo = ArmServo(PIN_SHOULDER_B, SHOULDERB_SERVO);
-    ArmServo _elbowServo    = ArmServo(PIN_ELBOW,       ELBOW_SERVO);
-    ArmServo _wristServo    = ArmServo(PIN_WRIST,       WRIST_SERVO);
-    ArmServo _clawServo = ArmServo(PIN_CLAW, CLAW_SERVO, 1000, 2000, MIN_ANGLE, MAX_ANGLE_CLAW);
+ArmServo _baseServo;
+ArmServo _shoulderAServo;
+ArmServo _shoulderBServo;
+ArmServo _elbowServo;
+ArmServo _wristServo;
+ArmServo _clawServo;
 
     const int homeArray[NSERVOS] = {HOME_BASE, HOME_SHOULDER, MAX_ANGLE - HOME_SHOULDER, HOME_ELBOW, HOME_WRIST, HOME_CLAW};
     const int startupArray[NSERVOS] = {STARTUP_BASE, STARTUP_SHOULDER, MAX_ANGLE - STARTUP_SHOULDER, STARTUP_ELBOW, STARTUP_WRIST, STARTUP_CLAW};

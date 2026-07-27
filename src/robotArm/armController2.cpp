@@ -2,13 +2,55 @@
 
 
 ArmController2::ArmController2()
-    : _baseServo(PIN_BASE, BASE_SERVO),
-      _shoulderAServo(PIN_SHOULDER_A, SHOULDERA_SERVO),
-      _shoulderBServo(PIN_SHOULDER_B, SHOULDERB_SERVO),
-      _elbowServo(PIN_ELBOW, ELBOW_SERVO),
-      _wristServo(PIN_WRIST, WRIST_SERVO),
-      _clawServo(PIN_CLAW, CLAW_SERVO), 
-      clawSwitch(PIN_SWITCH) 
+    : _baseServo(
+          PIN_BASE,
+          BASE_SERVO,
+          DS3235_MIN_US,
+          DS3235_MAX_US,
+          DS3235_MIN_ANGLE,
+          DS3235_MAX_ANGLE),
+
+      _shoulderAServo(
+          PIN_SHOULDER_A,
+          SHOULDERA_SERVO,
+          DS3235_MIN_US,
+          DS3235_MAX_US,
+          DS3235_MIN_ANGLE,
+          DS3235_MAX_ANGLE),
+
+      _shoulderBServo(
+          PIN_SHOULDER_B,
+          SHOULDERB_SERVO,
+          DS3235_MIN_US,
+          DS3235_MAX_US,
+          DS3235_MIN_ANGLE,
+          DS3235_MAX_ANGLE),
+
+      _elbowServo(
+          PIN_ELBOW,
+          ELBOW_SERVO,
+          DS3235_MIN_US,
+          DS3235_MAX_US,
+          DS3235_MIN_ANGLE,
+          DS3235_MAX_ANGLE),
+
+      _wristServo(
+          PIN_WRIST,
+          WRIST_SERVO,
+          ANALOG_MIN_US,
+          ANALOG_MAX_US,
+          ANALOG_MIN_ANGLE,
+          ANALOG_MAX_ANGLE),
+
+      _clawServo(
+          PIN_CLAW,
+          CLAW_SERVO,
+          ANALOG_MIN_US,
+          ANALOG_MAX_US,
+          ANALOG_MIN_ANGLE,
+          ANALOG_MAX_ANGLE),
+
+      clawSwitch(PIN_SWITCH)
 {
     //initialize the servo array here and point it at the actual servo objects 
     servos[BASE_SERVO] = &_baseServo;
@@ -38,16 +80,18 @@ void ArmController2::begin()
 }
 
 
-void ArmController2::configureLimits() {
+void ArmController2::configureLimits()
+{
+    _baseServo.setLimits(0, 270);
 
-    for (int i = 0; i < NSERVOS; i++) {
-        if (i == CLAW_SERVO) {
-            servos[i]->setLimits(MIN_ANGLE, MAX_ANGLE_CLAW);
-        } 
-        else {
-            servos[i]->setLimits(MIN_ANGLE, MAX_ANGLE);
-        }
-    }
+    _shoulderAServo.setLimits(0, 270);
+    _shoulderBServo.setLimits(0, 270);
+
+    _elbowServo.setLimits(0, 270);
+
+    _wristServo.setLimits(0, 180);
+
+    _clawServo.setLimits(0, MAX_ANGLE_CLAW);
 }
 
 void ArmController2::moveJoint(ArmServo& servo, int angle, int omega, int offset) {
@@ -59,7 +103,7 @@ void ArmController2::moveJoint(ArmServo& servo, int angle, int omega, int offset
 // simultaneously instead of one finishing before the other starts.
 void ArmController2::moveJointPair(ArmServo& servoA, ArmServo& servoB, int angle, int omega, int offset) {
     int targetA = angle + offset;
-    int targetB = (MAX_ANGLE - angle) + offset;
+    int targetB = (DS3235_MAX_ANGLE - angle) + offset;
 
     int startA = servoA.read();
     int startB = servoB.read();
@@ -94,17 +138,16 @@ void ArmController2::moveJointPair(ArmServo& servoA, ArmServo& servoB, int angle
     }
 }
 
-void ArmController2::goHome()
+
+ void ArmController2::goHome()
 {
-    for (int i = 0; i < NSERVOS; i++) {
-        if (i == CLAW_SERVO) {
-            moveClaw(_clawServo, HOME_CLAW, OMEGA_CLAW); 
-        }
-        else {
-            moveJoint(*servos[i], homeArray[i], omegas[i], offsets[i]);
-        }
-    }
+    setBase(HOME_BASE);
+    setShoulder(HOME_SHOULDER);
+    setElbow(HOME_ELBOW);
+    setWrist(HOME_WRIST);
+    setClaw(HOME_CLAW);
 }
+
 
 
 void ArmController2::moveClaw(ArmServo& servo, int angle, int omega) {    
