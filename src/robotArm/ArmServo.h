@@ -189,13 +189,14 @@ public:
         return _angleToUs(_currentAngle);
     }
 
-    // ── setLimits(minAngle, maxAngle) ───────────────────
-    // Restrict the servo's range. All write() and moveTo()
-    // calls will be clamped to [minAngle, maxAngle].
+    // ── setLimits() ──────────────────────────────────────
+    // Resets the servo's range back to the [minAngle, maxAngle]
+    // passed to the constructor. All write() and moveTo() calls
+    // will be clamped to that range.
     // Call before attach() or after — order doesn't matter.
-    void setLimits(int minAngle, int maxAngle) {
-        _minAngle = constrain(minAngle, _inputMinAngle, _inputMaxAngle);
-        _maxAngle = constrain(maxAngle, _inputMinAngle, _inputMaxAngle);
+    void setLimits() {
+        _minAngle = _inputMinAngle;
+        _maxAngle = _inputMaxAngle;
     }
 
     // ── detach() ────────────────────────────────────────

@@ -82,16 +82,16 @@ void ArmController2::begin()
 
 void ArmController2::configureLimits()
 {
-    _baseServo.setLimits(0, 270);
+    _baseServo.setLimits();
 
-    _shoulderAServo.setLimits(0, 270);
-    _shoulderBServo.setLimits(0, 270);
+    _shoulderAServo.setLimits();
+    _shoulderBServo.setLimits();
 
-    _elbowServo.setLimits(0, 270);
+    _elbowServo.setLimits();
 
-    _wristServo.setLimits(0, 180);
+    _wristServo.setLimits();
 
-    _clawServo.setLimits(0, MAX_ANGLE_CLAW);
+    _clawServo.setLimits();
 }
 
 void ArmController2::moveJoint(ArmServo& servo, int angle, int omega, int offset) {
