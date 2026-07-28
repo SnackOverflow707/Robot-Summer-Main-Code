@@ -25,9 +25,9 @@
 #define PIN_SWITCH 15
 
 // Home position angles
-#define HOME_BASE     270
-#define HOME_SHOULDER 180
-#define HOME_ELBOW    200
+#define HOME_BASE     120
+#define HOME_SHOULDER 100
+#define HOME_ELBOW    230
 #define HOME_WRIST    0
 #define HOME_CLAW      0 // fully open
 
@@ -48,6 +48,9 @@
 
 //specific joint angles. Default min/max are in ArmServo.h  
 #define MAX_ANGLE_CLAW 255
+
+#define CLAW_CLOSED MAX_ANGLE_CLAW  
+#define CLAW_OPEN MIN_ANGLE 
 
 class ArmController2
 {
