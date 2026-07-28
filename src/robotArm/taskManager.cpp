@@ -13,14 +13,8 @@ void TaskManager::executeMove(const ArmPose& waypoint) {
     _arm.setShoulder(waypoint.shoulderAngle); 
     _arm.setElbow(waypoint.elbowAngle); 
     _arm.setWrist(waypoint.wristAngle); 
+    _arm.setClaw(waypoint.clawAngle); 
 
-    if (waypoint.clawClosed) {
-        delay(DELAY); 
-        _arm.closeClaw(); 
-    }
-    else {
-        _arm.openClaw(); 
-    }
 }
 
 bool TaskManager::checkTime(unsigned long startTime, unsigned long max_time) {
@@ -40,7 +34,7 @@ bool TaskManager::objectGripCheckSequence(const ArmPose& objectLoc, int nAttempt
     backupLoc.elbowAngle += BACKUP;
 
     ArmPose reEntryLoc = objectLoc;
-    reEntryLoc.clawClosed = false;
+    reEntryLoc.clawAngle = CLAW_OPEN;
 
     for (int re_attempt = 1; re_attempt < nAttempts; re_attempt++) {
 

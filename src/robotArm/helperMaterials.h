@@ -1,6 +1,11 @@
 #ifndef HELPER_MATERIALS_H
 #define HELPER_MATERIALS_H
 
+#include "ArmController2.h"
+
+#define CLAW_CLOSED MIN_ANGLE 
+#define CLAW_OPEN MAX_ANGLE_CLAW 
+
 #pragma once
 
 struct ArmPose {
@@ -8,7 +13,7 @@ struct ArmPose {
     int shoulderAngle; 
     int elbowAngle; 
     int wristAngle; 
-    bool clawClosed; 
+    int clawAngle; 
 };
 
 #endif // HELPER_MATERIALS_H
