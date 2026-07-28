@@ -12,6 +12,7 @@ namespace StateMachine
 enum class State
 {
     TAPE_FOLLOW_ROCK_CHECK,
+    ROCK_METAL_CHECK,
     ROCK_GRAB,
     GRAB_FIRST_TOWER_PIECE,
     TAPE_FOLLOW_TO_TOWER,

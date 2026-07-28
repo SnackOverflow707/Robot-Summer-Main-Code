@@ -38,6 +38,16 @@ static constexpr uint16_t MAG1_THRESHOLD = 20000;
 static constexpr uint16_t MAG2_THRESHOLD = 3000;
 static constexpr uint16_t METAL_THRESHOLD = 50;
 
+// How long to sit still and sample the metal detector before deciding.
+// Longer = more confident, but costs time on every false alarm.
+static constexpr unsigned long METAL_CHECK_WINDOW_MS = 300;
+
+// Fraction of samples during the window that must read "metal detected"
+// to count as a real hit. Filters out a single noisy blip.
+static constexpr float METAL_CHECK_CONFIRM_RATIO = 0.6f;
+
+static constexpr uint8_t NUM_ROCKS = 6;
+
 static constexpr int STRAFE_SPEED = 150;
 static constexpr int IR_TUNE_SPEED = 60;
 
@@ -63,6 +73,16 @@ static bool returnTapeTriggerArmed = true;
 
 static uint8_t sideTapeTriggerCount = 0;
 
+// Which physical rock (0..NUM_ROCKS-1) we've stopped at. Increments on
+// EVERY stop-and-check, whether or not that rock turns out to have
+// metal - this is what lets ROCK_POSITIONS[] line up with the actual
+// physical layout of all 6 rocks along the track.
+static uint8_t rockIndex = 0;
+
+// Sampling counters for the stopped metal-detector confirmation window.
+static unsigned long metalCheckSampleCount = 0;
+static unsigned long metalCheckHitCount = 0;
+
 static unsigned long lastSideTapeTriggerTime = 0;
 static unsigned long lastReturnTapeTriggerTime = 0;
 
@@ -75,6 +95,7 @@ const char* getStateName(State state)
     switch (state)
     {
         case State::TAPE_FOLLOW_ROCK_CHECK:   return "Tape Follow + Rock Check";
+        case State::ROCK_METAL_CHECK:         return "Rock Metal Check";
         case State::ROCK_GRAB:                return "Rock Grab";
         case State::GRAB_FIRST_TOWER_PIECE:   return "Grab First Tower Piece";
         case State::TAPE_FOLLOW_TO_TOWER:     return "Tape Follow to Tower";
@@ -100,6 +121,7 @@ const char* getStateId(State state)
     switch (state)
     {
         case State::TAPE_FOLLOW_ROCK_CHECK:   return "tape-rock";
+        case State::ROCK_METAL_CHECK:         return "rock-metal-check";
         case State::ROCK_GRAB:                return "rock-grab";
         case State::GRAB_FIRST_TOWER_PIECE:   return "grab-tower-piece";
         case State::TAPE_FOLLOW_TO_TOWER:     return "tape-to-tower";
@@ -126,8 +148,8 @@ const char* getStateId()
 
 static void stopAllMechanisms()
 {
-   /* RockGrabber::stop();
-    TowerPieceGrabber::stop();
+    RockGrabber::stop();
+   /* TowerPieceGrabber::stop();
     TowerRam::stop();
     TowerBuilder::stop();
     TapeReturn::stop();
@@ -167,8 +189,15 @@ static void changeState(State newState)
             setTapeFollowing(true);
             break;
 
+        case State::ROCK_METAL_CHECK:
+            drive.stop();
+            metalCheckSampleCount = 0;
+            metalCheckHitCount = 0;
+            break;
+
         case State::ROCK_GRAB:
-            //RockGrabber::begin();
+            RockGrabber::begin();
+            RockGrabber::start(rockIndex);
             break;
 
         case State::GRAB_FIRST_TOWER_PIECE:
@@ -286,6 +315,7 @@ void begin()
 
     enabled = false;
     sideTapeTriggerCount = 0;
+    rockIndex = 0;
 
     irTriggerArmed = true;
     metalTriggerArmed = true;
@@ -317,6 +347,7 @@ bool isEnabled()
 void restart()
 {
     sideTapeTriggerCount = 0;
+    rockIndex = 0;
 
     irTriggerArmed = true;
     metalTriggerArmed = true;
@@ -381,7 +412,7 @@ void update(const Inputs& inputs)
             if (metalDetected && metalTriggerArmed)
             {
                 metalTriggerArmed = false;
-                changeState(State::ROCK_GRAB);
+                changeState(State::ROCK_METAL_CHECK);
                 break;
             }
 
@@ -392,13 +423,52 @@ void update(const Inputs& inputs)
             }
             break;
 
-        case State::ROCK_GRAB:
-            /*RockGrabber::update();
+        case State::ROCK_METAL_CHECK:
+        {
+            ++metalCheckSampleCount;
 
-            if (RockGrabber::isFinished())
+            if (metalDetected)
+            {
+                ++metalCheckHitCount;
+            }
+
+            if (getStateElapsedMs() >= METAL_CHECK_WINDOW_MS)
+            {
+                const float hitRatio =
+                    static_cast<float>(metalCheckHitCount) /
+                    static_cast<float>(metalCheckSampleCount);
+
+                if (hitRatio >= METAL_CHECK_CONFIRM_RATIO)
+                {
+                    // rockIndex still reflects the rock we just stopped
+                    // at; RockGrabber::start() (called from changeState's
+                    // entry action) reads it before we advance it below.
+                    changeState(State::ROCK_GRAB);
+                }
+                else
+                {
+                    // False alarm - resume the line and let the trigger
+                    // re-arm naturally once metalDetected drops out.
+                    changeState(State::TAPE_FOLLOW_ROCK_CHECK);
+                }
+
+                // Either way, this stop is done - advance to the next
+                // physical rock for next time.
+                if (rockIndex < NUM_ROCKS - 1)
+                {
+                    ++rockIndex;
+                }
+            }
+            break;
+        }
+
+        case State::ROCK_GRAB:
+            RockGrabber::update();
+
+            if (RockGrabber::isFinished() || RockGrabber::hasFailed())
             {
                 changeState(State::TAPE_FOLLOW_ROCK_CHECK);
-            }*/
+            }
             break;
 
         case State::GRAB_FIRST_TOWER_PIECE:
@@ -517,6 +587,7 @@ bool requestState(State state)
 bool requestStateById(const String& stateId)
 {
     if (stateId == "tape-rock")          return requestState(State::TAPE_FOLLOW_ROCK_CHECK);
+    if (stateId == "rock-metal-check")   return requestState(State::ROCK_METAL_CHECK);
     if (stateId == "rock-grab")          return requestState(State::ROCK_GRAB);
     if (stateId == "grab-tower-piece")   return requestState(State::GRAB_FIRST_TOWER_PIECE);
     if (stateId == "tape-to-tower")      return requestState(State::TAPE_FOLLOW_TO_TOWER);
