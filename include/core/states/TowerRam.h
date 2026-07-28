@@ -22,5 +22,6 @@ void stop();
 void update();
 
 bool isFinished();
+bool isMicroswitchPressed();
 
 } // namespace TowerRam

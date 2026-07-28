@@ -6,6 +6,7 @@
 #include "robotArm/ArmController2.h"
 #include "robotArm/taskManager.h"
 #include "robotArm/armSequences/solarPanels.h"
+#include "core/states/TowerRam.h"
 
 
 WifiManager::WifiManager(
@@ -443,6 +444,8 @@ json += selectedDetected ? "true" : "false";
         json += ",\"elbow\":"    + String(_arm.getElbow());
         json += ",\"wrist\":"    + String(_arm.getWrist());
         json += ",\"claw\":"     + String(_arm.getClaw());
+        json += ",\"towerRamSwitch\":";
+        json += (TowerRam::isMicroswitchPressed() ? "true" : "false");
 
         json += "}";
 
@@ -692,7 +695,7 @@ void WifiManager::showControlPage()
 
         .off-tape {
             background: #f7c8c8;
-       cv       }
+          }
 
         button {
             min-width: 130px;
@@ -1189,6 +1192,10 @@ void WifiManager::showControlPage()
     </div>
 
     <p id="stateMessage"></p>
+    <div>
+    Tower Ram Switch:
+    <span id="towerRamSwitch">Waiting...</span>
+</div>
 </div>
 
 <script>
@@ -1385,7 +1392,17 @@ async function updateStatus()
             !data.sideOnTape
         );
 
+        const towerRamSwitch =
+        document.getElementById("towerRamSwitch");
 
+        if (data.towerRamSwitch)
+        {
+            towerRamSwitch.textContent = "PRESSED";
+        }
+        else
+        {
+         towerRamSwitch.textContent = "Not pressed";
+        }
         document.getElementById(
             "mag1"
         ).textContent = data.mag1;

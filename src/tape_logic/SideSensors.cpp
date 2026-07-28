@@ -59,13 +59,17 @@ bool checkForSideTape()
     return false;
 }
 
-SideSensorStatus getSideSensorStatus() {
+SideSensorStatus getSideSensorStatus()
+{
+    latestSensorVoltage = readSideSensorVoltage(SENSOR_PIN);
+    latestOnTape = sensorTriggered(latestSensorVoltage);
+
     SideSensorStatus status;
     status.sensorVoltage = latestSensorVoltage;
     status.onTape = latestOnTape;
+
     return status;
 }
-
 
 
 

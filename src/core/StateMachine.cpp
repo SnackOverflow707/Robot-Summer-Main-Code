@@ -3,6 +3,7 @@
 #include "tape_logic/TapeFollower.h"
 #include "tape_logic/SideSensors.h"
 #include "actuators/MecanumDrive.h"
+#include "tape_logic/SideSensors.h"
 
 // Expected mechanism files:
 //
@@ -206,6 +207,7 @@ static void changeState(State newState)
 
         case State::TAPE_FOLLOW_TO_TOWER:
             resetTapePID();
+            sideTapeTriggerArmed = true;
             //setTapeBaseSpeed(120);
             setTapeFollowing(true);
             break;
@@ -481,15 +483,20 @@ void update(const Inputs& inputs)
             break;
 
         case State::TAPE_FOLLOW_TO_TOWER:
-            tapeFollowStep();
+            {const SideSensorStatus sideStatus = getSideSensorStatus();
 
-            if (consumeSideTapeTrigger(inputs.sideTapeDetected))
+            if (consumeSideTapeTrigger(sideStatus.onTape))
             {
                 changeState(State::TOWER_RAM);
+                break;
             }
-            break;
+    
+            tapeFollowStep();
+            break;}
+    
 
         case State::TOWER_RAM:
+        
             TowerRam::update();
 
             if (TowerRam::isFinished())

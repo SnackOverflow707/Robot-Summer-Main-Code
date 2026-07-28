@@ -8,6 +8,7 @@
 #include "tape_logic/TapeFollower.h"
 #include "tape_logic/SideSensors.h"
 #include "robotArm/taskManager.h"
+#include "core/states/TowerRam.h"
 
 MecanumDrive drive;
 //ArmController2 arm;
@@ -23,6 +24,7 @@ void setup()
     drive.begin();
     arm.begin();
     UART::begin();
+    TowerRam::begin();
 
     StateMachine::begin();
 

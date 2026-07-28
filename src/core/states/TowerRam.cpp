@@ -260,5 +260,9 @@ bool isFinished()
 {
     return currentState == State::FINISHED;
 }
+bool isMicroswitchPressed()
+{
+    return microswitchPressed();
+}
 
 } // namespace TowerRam
