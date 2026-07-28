@@ -4,7 +4,6 @@
 #include "../ArmController2.h"
 #include "../taskManager.h"
 
-//constexpr unsigned long MAX_TOWER_TIME = 25UL * 1000UL; //maximum amount of time to attempt the towers, in ms
 #define TOWERS_TO_ATTEMPT 3
 
 //tower positions 
@@ -43,7 +42,6 @@ static const std::vector<ArmPose> TOWER_DROP_IN_FUNNEL = {
 void towerSequence(TaskManager& taskManager) {
 
     taskManager.executeMove(ORIENT); 
-    //int startTime = millis(); 
 
     for (int step = 0; step < TOWERS_TO_ATTEMPT; step+=2){
         taskManager.executeMove(ALL_TOWERS[step]); 
@@ -51,14 +49,6 @@ void towerSequence(TaskManager& taskManager) {
         taskManager.executeSequence(TOWER_DROP_IN_FUNNEL); 
     }
 
-    //keep or nah
-    /*
-    for (int step = 0; step < TOWERS_TO_ATTEMPT && taskManager.checkTime(startTime, MAX_TOWER_TIME); step+=2){
-        taskManager.executeMove(ALL_TOWERS[step]); 
-        taskManager.executeMove(ALL_TOWERS[step+1]); 
-        taskManager.executeSequence(TOWER_DROP_IN_FUNNEL); 
-    }
-        */
     
 }
 
