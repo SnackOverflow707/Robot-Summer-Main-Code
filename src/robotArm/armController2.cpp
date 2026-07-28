@@ -164,7 +164,6 @@ void ArmController2::openClaw() {
 
 void ArmController2::closeClaw() {
     _clawServo.moveTo(CLAW_CLOSED, OMEGA_CLAW); 
-    _clawServo.write(CLAW_CLOSED);
 }
 
 
