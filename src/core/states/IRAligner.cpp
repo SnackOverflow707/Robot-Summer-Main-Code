@@ -29,10 +29,10 @@ static constexpr int BACKWARD_SPEED = 60;
 static constexpr unsigned long BACKWARD_TIME_MS = 2000;
 
 // Then scan forward slowly across the IR peak.
-static constexpr int FORWARD_SCAN_SPEED = 30;
+static constexpr int FORWARD_SCAN_SPEED = 60;
 
 // Maximum time allowed for the forward peak search.
-static constexpr unsigned long FORWARD_SEARCH_TIME_MS = 4000;
+static constexpr unsigned long FORWARD_SEARCH_TIME_MS = 2000;
 
 
 // --------------------------------------------------
