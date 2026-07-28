@@ -7,8 +7,8 @@
 #define PANEL_NATTEMPTS 3 //total attempts including the initial attempt, if failed 
 
 //positions to reach the solar panels
-static const ArmPose ORIENT = { 0, 85, 205, 0, false}; //base turns 90deg, claw is open
-static const ArmPose GRAB_PANEL = {0, 85, 205, 0, true}; //update after testing
+static const ArmPose ORIENT = { 60, 70, 250, 195, false}; //base turns 90deg, claw is open
+static const ArmPose GRAB_PANEL = {180, 70, 250, 195, true}; //update after testing
 static const ArmPose RETRACT = {0, 160, 205, 0, true}; //update after testing
 static const ArmPose RECENTER = {90, 160, 205, 0,true};
 
