@@ -2,7 +2,7 @@
 #include <cstring>
 
 //hey i did almost all of this by myself! 
-
+const char* PICKUP_JOINT_ORDER[5] = {"shoulder", "elbow", "base", "wrist", "claw"}; 
 // use initializer list to bind the reference variable
 TaskManager::TaskManager(ArmController2& armRef) : _arm(armRef) {
     // Constructor body can stay empty
@@ -11,25 +11,55 @@ TaskManager::TaskManager(ArmController2& armRef) : _arm(armRef) {
 
 void TaskManager::executeMove(
     const ArmPose& waypoint,
-    const char* jointOrder[] = {"base", "shoulder", "elbow", "wrist", "claw"}
-) 
+    const char* jointOrder[]
+)
 {
-    for (int word = 0; word < 5; ++word) {
-        if (strcmp(jointOrder[word], "base") == 0) {
+    for (int word = 0; word < 5; ++word)
+    {
+        if (strcmp(jointOrder[word], "base") == 0)
+        {
             _arm.setBase(waypoint.baseAngle);
-        } else if (strcmp(jointOrder[word], "shoulder") == 0) {
+        }
+        else if (strcmp(jointOrder[word], "shoulder") == 0)
+        {
             _arm.setShoulder(waypoint.shoulderAngle);
-        } else if (strcmp(jointOrder[word], "elbow") == 0) {
+        }
+        else if (strcmp(jointOrder[word], "elbow") == 0)
+        {
             _arm.setElbow(waypoint.elbowAngle);
-        } else if (strcmp(jointOrder[word], "wrist") == 0) {
+        }
+        else if (strcmp(jointOrder[word], "wrist") == 0)
+        {
             _arm.setWrist(waypoint.wristAngle);
-        } else if (strcmp(jointOrder[word], "claw") == 0) {
+        }
+        else if (strcmp(jointOrder[word], "claw") == 0)
+        {
             _arm.setClaw(waypoint.clawAngle);
-        } else {
-            printf("Joint name not recognized.\n");
+        }
+        else
+        {
+            printf("Joint name not recognized: %s\n", jointOrder[word]);
         }
     }
 }
+
+
+void TaskManager::executeMove(
+    const ArmPose& waypoint
+)
+{
+    const char* jointOrder[] = {
+        "base",
+        "shoulder",
+        "elbow",
+        "wrist",
+        "claw"
+    };
+
+    executeMove(waypoint, jointOrder);
+}
+
+
 
 bool TaskManager::checkTime(unsigned long startTime, unsigned long max_time) {
     unsigned long currentTime = millis();

@@ -45,7 +45,7 @@ void towerSequence(TaskManager& taskManager) {
 
     taskManager.executeMove(ORIENT); 
 
-    for (int step = 0; step < TOWERS_TO_ATTEMPT; step+=2){
+    for (int step = 0; step < 2*TOWERS_TO_ATTEMPT; step+=2){
         taskManager.executeMove(ALL_TOWERS[step]); 
         taskManager.executeMove(ALL_TOWERS[step+1]); 
         taskManager.executeSequence(TOWER_DROP_IN_FUNNEL); 

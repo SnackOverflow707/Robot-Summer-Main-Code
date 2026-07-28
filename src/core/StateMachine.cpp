@@ -5,6 +5,7 @@
 #include "actuators/MecanumDrive.h"
 #include "tape_logic/SideSensors.h"
 
+
 // Expected mechanism files:
 //
 // mechanisms/RockGrabber.h
@@ -155,6 +156,7 @@ static void stopAllMechanisms()
     TowerBuilder::stop();
     TapeReturn::stop();
     */
+    TowerBuilder::stop();
     SolarPanelRipper::stop();
     IRAligner::stop();
     TowerRam::stop();
@@ -217,7 +219,8 @@ static void changeState(State newState)
             break;
 
         case State::TOWER_BUILD:
-            //TowerBuilder::begin();
+            TowerBuilder::begin();
+            TowerBuilder::start();
             break;
 
         case State::RETURN_TO_TAPE:
@@ -505,12 +508,12 @@ void update(const Inputs& inputs)
             break;
 
         case State::TOWER_BUILD:
-            /*TowerBuilder::update();
+            TowerBuilder::update();
 
             if (TowerBuilder::isFinished())
             {
                 changeState(State::RETURN_TO_TAPE);
-            }*/
+            }
             break;
 
         case State::RETURN_TO_TAPE:
