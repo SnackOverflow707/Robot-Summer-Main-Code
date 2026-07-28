@@ -48,7 +48,7 @@ ArmController2::ArmController2()
           ANALOG_MIN_US,
           ANALOG_MAX_US,
           ANALOG_MIN_ANGLE,
-          ANALOG_MAX_ANGLE),
+          MAX_ANGLE_CLAW),
 
       clawSwitch(PIN_SWITCH)
 {
@@ -70,7 +70,7 @@ void ArmController2::begin()
     ESP32PWM::allocateTimer(3);
 
     for (int i = 0; i < NSERVOS; i++) {
-        servos[i]->attach(startupArray[i] + offsets[i]);
+        servos[i]->attach();
     }
 
     configureLimits(); 
@@ -82,16 +82,16 @@ void ArmController2::begin()
 
 void ArmController2::configureLimits()
 {
-    _baseServo.setLimits(0, 270);
+    _baseServo.setLimits();
 
-    _shoulderAServo.setLimits(0, 270);
-    _shoulderBServo.setLimits(0, 270);
+    _shoulderAServo.setLimits();
+    _shoulderBServo.setLimits();
 
-    _elbowServo.setLimits(0, 270);
+    _elbowServo.setLimits();
 
-    _wristServo.setLimits(0, 180);
+    _wristServo.setLimits();
 
-    _clawServo.setLimits(0, MAX_ANGLE_CLAW);
+    _clawServo.setLimits();
 }
 
 void ArmController2::moveJoint(ArmServo& servo, int angle, int omega, int offset) {

@@ -4,7 +4,7 @@
 #include "driver/mcpwm.h"
 
 static constexpr uint32_t PWM_FREQ = 400;
-static constexpr int REVERSE_DEAD_TIME_US = 2000;
+static constexpr int REVERSE_DEAD_TIME_US = 10000;
 
 MotorDriver::MotorDriver(
     int pinA,
