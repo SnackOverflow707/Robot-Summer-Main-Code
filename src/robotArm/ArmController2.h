@@ -7,6 +7,7 @@
 
 //general definitions 
 #define NSERVOS 6 
+
 #define BASE_SERVO 0
 #define SHOULDERA_SERVO 1
 #define SHOULDERB_SERVO 2
@@ -47,7 +48,7 @@
 #define OMEGA_CLAW 100 //in deg/s  
 
 //specific joint angles. Default min/max are in ArmServo.h  
-#define MAX_ANGLE_CLAW 255
+#define MAX_ANGLE_CLAW 90
 
 #define CLAW_CLOSED MAX_ANGLE_CLAW  
 #define CLAW_OPEN MIN_ANGLE 
