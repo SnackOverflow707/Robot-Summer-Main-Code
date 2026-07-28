@@ -1,4 +1,5 @@
 #include "taskManager.h" 
+#include <cstring>
 
 //hey i did almost all of this by myself! 
 
@@ -7,14 +8,27 @@ TaskManager::TaskManager(ArmController2& armRef) : _arm(armRef) {
     // Constructor body can stay empty
 }
 
-// use 'TaskManager::' scope 
-void TaskManager::executeMove(const ArmPose& waypoint) {
-    _arm.setBase(waypoint.baseAngle); 
-    _arm.setShoulder(waypoint.shoulderAngle); 
-    _arm.setElbow(waypoint.elbowAngle); 
-    _arm.setWrist(waypoint.wristAngle); 
-    _arm.setClaw(waypoint.clawAngle); 
 
+void TaskManager::executeMove(
+    const ArmPose& waypoint,
+    const char* jointOrder[] = {"base", "shoulder", "elbow", "wrist", "claw"}
+) 
+{
+    for (int word = 0; word < 5; ++word) {
+        if (strcmp(jointOrder[word], "base") == 0) {
+            _arm.setBase(waypoint.baseAngle);
+        } else if (strcmp(jointOrder[word], "shoulder") == 0) {
+            _arm.setShoulder(waypoint.shoulderAngle);
+        } else if (strcmp(jointOrder[word], "elbow") == 0) {
+            _arm.setElbow(waypoint.elbowAngle);
+        } else if (strcmp(jointOrder[word], "wrist") == 0) {
+            _arm.setWrist(waypoint.wristAngle);
+        } else if (strcmp(jointOrder[word], "claw") == 0) {
+            _arm.setClaw(waypoint.clawAngle);
+        } else {
+            printf("Joint name not recognized.\n");
+        }
+    }
 }
 
 bool TaskManager::checkTime(unsigned long startTime, unsigned long max_time) {

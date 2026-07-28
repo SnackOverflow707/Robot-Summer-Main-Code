@@ -49,6 +49,7 @@
 
 //specific joint angles. Default min/max are in ArmServo.h  
 #define MAX_ANGLE_CLAW 90
+#define CLAW_CLOSED_TOWER 90 
 
 #define CLAW_CLOSED MAX_ANGLE_CLAW  
 #define CLAW_OPEN MIN_ANGLE 
