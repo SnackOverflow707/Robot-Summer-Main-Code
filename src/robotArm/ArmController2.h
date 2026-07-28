@@ -48,8 +48,8 @@
 #define OMEGA_CLAW 100 //in deg/s  
 
 //specific joint angles. Default min/max are in ArmServo.h  
-#define MAX_ANGLE_CLAW 90
-#define CLAW_CLOSED_TOWER 90 
+#define MAX_ANGLE_CLAW 45
+#define CLAW_CLOSED_TOWER MAX_ANGLE_CLAW 
 
 #define CLAW_CLOSED MAX_ANGLE_CLAW  
 #define CLAW_OPEN MIN_ANGLE 
@@ -76,6 +76,7 @@ public:
     int getWrist() const;
     int getClaw() const;
 
+    void startup(); 
     void goHome();
     void configureLimits(); 
 

@@ -74,8 +74,8 @@ void ArmController2::begin()
     }
 
     configureLimits(); 
-    goHome();
-    clawSwitch.begin(); 
+    startup();
+    //clawSwitch.begin(); 
     
 }
 
@@ -136,6 +136,15 @@ void ArmController2::moveJointPair(ArmServo& servoA, ArmServo& servoB, int angle
         servoB.write((int)(curB + 0.5f));
         delay((uint32_t)stepDelay_ms);
     }
+}
+
+
+void ArmController2::startup() {
+    setBase(HOME_BASE); 
+    setShoulder(140);
+    setElbow(235); 
+    setWrist(0); 
+    setClaw(30);  
 }
 
 
