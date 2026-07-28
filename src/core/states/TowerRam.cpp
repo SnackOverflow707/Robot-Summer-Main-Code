@@ -14,7 +14,7 @@ namespace TowerRam
 // --------------------------------------------------
 
 static constexpr int ROTATE_SPEED = 140;
-static constexpr unsigned long ROTATE_TIME_MS = 3500;
+static constexpr unsigned long ROTATE_TIME_MS = 3600;
 
 static constexpr int STRAFE_SPEED = 120;
 static constexpr unsigned long SHORT_STRAFE_TIME_MS = 500;
@@ -25,8 +25,12 @@ static constexpr int LEFT_WHEELS_SPEED = 120;
 static constexpr unsigned long SEARCH_STRAFE_TIME_MS = 500;
 static constexpr unsigned long LEFT_WHEELS_TIME_MS = 500;
 
+// Maximum TOTAL time spent searching for the microswitch
+static constexpr unsigned long SEARCH_TIMEOUT_MS = 5000;
+
 // Microswitch
 static constexpr int MICROSWITCH_PIN = 42;
+
 
 // --------------------------------------------------
 // State variables
@@ -34,6 +38,10 @@ static constexpr int MICROSWITCH_PIN = 42;
 
 static State currentState = State::IDLE;
 static unsigned long stateStartTime = 0;
+
+// Does NOT reset when alternating between the two search states.
+// This gives us a 5-second total search timeout.
+static unsigned long searchStartTime = 0;
 
 
 // --------------------------------------------------
@@ -66,12 +74,16 @@ void begin()
 
     currentState = State::IDLE;
     stateStartTime = 0;
+    searchStartTime = 0;
 }
 
 
 void start()
 {
     drive.stop();
+
+    searchStartTime = 0;
+
     changeState(State::SHORT_STRAFE);
 }
 
@@ -79,6 +91,9 @@ void start()
 void stop()
 {
     drive.stop();
+
+    searchStartTime = 0;
+
     changeState(State::IDLE);
 }
 
@@ -89,6 +104,10 @@ void update()
 
     switch (currentState)
     {
+        // --------------------------------------------------
+        // Idle
+        // --------------------------------------------------
+
         case State::IDLE:
         {
             drive.stop();
@@ -133,7 +152,7 @@ void update()
 
 
         // --------------------------------------------------
-        // Existing strafe
+        // Main strafe right
         // --------------------------------------------------
 
         case State::STRAFE_RIGHT:
@@ -144,7 +163,9 @@ void update()
             {
                 drive.stop();
 
-                // Begin alternating microswitch search
+                // Start the 5-second TOTAL search timer here.
+                searchStartTime = millis();
+
                 changeState(State::SEARCH_STRAFE_RIGHT);
             }
 
@@ -153,12 +174,21 @@ void update()
 
 
         // --------------------------------------------------
-        // Microswitch search: strafe right
+        // Search: strafe right
         // --------------------------------------------------
 
         case State::SEARCH_STRAFE_RIGHT:
         {
+            // Microswitch found
             if (microswitchPressed())
+            {
+                drive.stop();
+                changeState(State::FINISHED);
+                break;
+            }
+
+            // Total search has exceeded 5 seconds
+            if (millis() - searchStartTime >= SEARCH_TIMEOUT_MS)
             {
                 drive.stop();
                 changeState(State::FINISHED);
@@ -167,6 +197,7 @@ void update()
 
             drive.strafeRight(STRAFE_SPEED);
 
+            // Alternate to moving the left wheels
             if (elapsed >= SEARCH_STRAFE_TIME_MS)
             {
                 drive.stop();
@@ -178,12 +209,21 @@ void update()
 
 
         // --------------------------------------------------
-        // Microswitch search: both left wheels forward
+        // Search: both left wheels forward
         // --------------------------------------------------
 
         case State::SEARCH_LEFT_WHEELS:
         {
+            // Microswitch found
             if (microswitchPressed())
+            {
+                drive.stop();
+                changeState(State::FINISHED);
+                break;
+            }
+
+            // Total search has exceeded 5 seconds
+            if (millis() - searchStartTime >= SEARCH_TIMEOUT_MS)
             {
                 drive.stop();
                 changeState(State::FINISHED);
@@ -192,6 +232,7 @@ void update()
 
             drive.leftWheelsForward(LEFT_WHEELS_SPEED);
 
+            // Alternate back to strafing right
             if (elapsed >= LEFT_WHEELS_TIME_MS)
             {
                 drive.stop();
