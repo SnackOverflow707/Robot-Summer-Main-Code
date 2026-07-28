@@ -207,7 +207,6 @@ static void changeState(State newState)
 
         case State::TAPE_FOLLOW_TO_TOWER:
             resetTapePID();
-            sideTapeTriggerArmed = true;
             //setTapeBaseSpeed(120);
             setTapeFollowing(true);
             break;
