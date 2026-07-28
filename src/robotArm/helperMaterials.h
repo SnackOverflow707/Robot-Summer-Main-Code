@@ -3,9 +3,6 @@
 
 #include "ArmController2.h"
 
-#define CLAW_CLOSED MIN_ANGLE 
-#define CLAW_OPEN MAX_ANGLE_CLAW 
-
 #pragma once
 
 struct ArmPose {

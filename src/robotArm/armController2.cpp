@@ -153,6 +153,9 @@ void ArmController2::moveJointPair(ArmServo& servoA, ArmServo& servoB, int angle
 void ArmController2::moveClaw(ArmServo& servo, int angle, int omega) {    
     angle += CLAW_OFFSET; 
     servo.moveTo(angle, omega);
+    if (angle == CLAW_CLOSED) {
+        _clawServo.write(CLAW_CLOSED);
+    }
 }
 
 void ArmController2::openClaw() {
@@ -160,7 +163,8 @@ void ArmController2::openClaw() {
 }
 
 void ArmController2::closeClaw() {
-    _clawServo.moveTo(MAX_ANGLE_CLAW, OMEGA_CLAW); 
+    _clawServo.moveTo(CLAW_CLOSED, OMEGA_CLAW); 
+    _clawServo.write(CLAW_CLOSED);
 }
 
 
