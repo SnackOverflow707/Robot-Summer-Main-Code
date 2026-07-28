@@ -141,6 +141,7 @@ void MecanumDrive::rotateAboutCenter(int rotateSpeed)
 }
 void MecanumDrive::leftWheelsForward(int speed)
 {
+  delay(10);
     frontLeft.setSpeed(speed);
     backLeft.setSpeed(speed);
 

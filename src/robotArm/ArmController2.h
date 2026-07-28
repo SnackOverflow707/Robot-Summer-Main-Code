@@ -22,7 +22,7 @@
 #define PIN_WRIST    40 
 #define PIN_CLAW     21
 
-#define PIN_SWITCH 17
+#define PIN_SWITCH 15
 
 // Home position angles
 #define HOME_BASE     270
