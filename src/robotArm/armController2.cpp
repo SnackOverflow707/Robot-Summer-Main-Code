@@ -136,11 +136,11 @@ void ArmController2::moveJointsSync(ArmServo& servoA, ArmServo& servoB, int angl
 
 
 void ArmController2::startup() {
-    setBase(HOME_BASE); 
-    setShoulder(140);
+    setBase(130); 
+    setShoulder(205);
     setElbow(235); 
-    setWrist(0); 
-    setClaw(30);  
+    setWrist(35); 
+    setClaw(20);  
 }
 
 
