@@ -34,7 +34,7 @@ static const std::vector<ArmPose> ALL_TOWERS = {
 };
 
 //repeat positions 
-static const ArmPose ORIENT = {HOME_BASE, HOME_SHOULDER, HOME_ELBOW, HOME_WRIST, HOME_CLAW}; //base turns 90deg, claw is open
+static const ArmPose ORIENT = {HOME_BASE, HOME_SHOULDER, HOME_ELBOW, 90, HOME_CLAW}; //base turns 90deg, claw is open
 static const ArmPose RETRACT = {160, 120, 180, 60, 45}; 
 static const ArmPose FUNNEL1 = {0, 120, 180, 60, 45}; 
 static const ArmPose FUNNEL2 = {0, 120, 180, 35, 45}; 

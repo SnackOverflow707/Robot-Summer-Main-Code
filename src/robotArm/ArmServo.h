@@ -31,10 +31,10 @@
 #define DS3235_MIN_ANGLE    0
 #define DS3235_MAX_ANGLE  270
 
-#define ANALOG_MIN_US    500
+#define ANALOG_MIN_US    500 //increasing the PWM range beyond the datasheet allowed us to reach full ROM
 #define ANALOG_MAX_US    2500
 #define ANALOG_MIN_ANGLE    0
-#define ANALOG_MAX_ANGLE  270 //270? 
+#define ANALOG_MAX_ANGLE  270 /
 
 #define ARM_SERVO_FREQ_HZ   50   // standard 50 Hz (20 ms period)
 #define ARM_SERVO_TIMER_BITS 12  
@@ -76,23 +76,6 @@ public:
         _attached = true;
     }
 
-    /*int angleToBits(int angle) const {
-        return (int)((float)angle / 180.0f * (float)((1 << ARM_SERVO_TIMER_BITS) - 1));
-    }
-
-    // ── write(angle) ────────────────────────────────────
-    // Move servo to angle (0–180°).
-    // Clamps to [minAngle, maxAngle] set via setLimits().
-    void manualWrite(int angle) {
-        if (!_attached) return;
-        angle = constrain(angle, _minAngle, _maxAngle);
-        _currentAngle = angle;
-        int bits = angleToBits(angle);
-        printf("Writing angle: %d, bits: %d\n", angle, bits);
-        ledcWrite(_channel, bits);
-    }*/ 
-
-
         // ── write(angle) ────────────────────────────────────
     // Converts angle → pulse width (µs) → duty cycle ticks.
     void write(int angle) {
@@ -110,16 +93,6 @@ public:
     }
 
 
-
-
-
-
-
-
-    // ── writeMicroseconds(us) ───────────────────────────
-    // Move servo to a raw pulse width in microseconds.
-    // Useful for fine-tuning beyond 0–180° if your servo
-    // supports it. Clamps to [_minUs, _maxUs].
     void writeMicroseconds(uint16_t us) {
         if (!_attached) return;
         us = constrain(us, _minUs, _maxUs);
@@ -131,10 +104,6 @@ public:
     // ── moveTo(targetAngle, degreesPerSec) ──────────────
     // Sweep from current angle to targetAngle at a fixed
     // speed (°/sec). BLOCKING — holds the CPU until done.
-    // Use in task sequences, not in a tight loop.
-    //
-    // Example: moveTo(0, 90)  → sweep to 0° at 90°/sec
-    //          moveTo(180, 30) → slow sweep to 180°
     void moveTo(int targetAngle, float degreesPerSec) {
         if (!_attached) return;
         if (_currentAngle < 0) {

@@ -2,7 +2,7 @@
 #include <cstring>
 
 //hey i did almost all of this by myself! 
-const char* PICKUP_JOINT_ORDER[5] = {"shoulder", "elbow", "base", "wrist", "claw"}; 
+
 // use initializer list to bind the reference variable
 TaskManager::TaskManager(ArmController2& armRef) : _arm(armRef) {
     // Constructor body can stay empty
