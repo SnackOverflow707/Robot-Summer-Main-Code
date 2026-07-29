@@ -8,21 +8,22 @@
 #define TOWER_CLAW_CLOSED 43
 
 //tower positions 
-static const ArmPose REACH_TOWER_1 = {155, 170, 235, 70, 20}; 
-static const ArmPose GRAB_TOWER_1 = {155, 170, 235, 70, TOWER_CLAW_CLOSED}; 
-static const ArmPose REACH_TOWER_2 = {160, 175, 220, 65, 0}; 
-static const ArmPose GRAB_TOWER_2 = {160, 175, 220, 65, TOWER_CLAW_CLOSED}; 
-static const ArmPose REACH_TOWER_3 = {175, 195, 170, 25, 0}; 
-static const ArmPose GRAB_TOWER_3 = {175, 195, 170, 25, TOWER_CLAW_CLOSED}; 
+static const ArmPose REACH_TOWER_1 = {160, 170, 235, 70, 20}; 
+static const ArmPose GRAB_TOWER_1 = {160, 170, 235, 70, TOWER_CLAW_CLOSED}; 
+static const ArmPose REACH_TOWER_2 = {165, 175, 220, 65, 0}; 
+static const ArmPose GRAB_TOWER_2 = {165, 175, 220, 65, TOWER_CLAW_CLOSED}; 
+static const ArmPose REACH_TOWER_3 = {180, 195, 170, 25, 0}; 
+static const ArmPose GRAB_TOWER_3 = {180, 195, 170, 25, TOWER_CLAW_CLOSED}; 
 
 
 const char* pickupOrder[] = {
     "shoulder",
     "base",
-    "wrist",
     "elbow",
+    "wrist",
     "claw"
 };
+
 //all tower positions 
 //repeat sequence
 static const std::vector<ArmPose> ALL_TOWERS = {
@@ -36,10 +37,10 @@ static const std::vector<ArmPose> ALL_TOWERS = {
 
 //repeat positions 
 static const ArmPose ORIENT = {HOME_BASE, HOME_SHOULDER, HOME_ELBOW, 90, HOME_CLAW}; //base turns 90deg, claw is open
-static const ArmPose RETRACT = {160, 120, 180, 60, 43}; 
-static const ArmPose FUNNEL1 = {0, 95, 220, 70, 43}; 
-static const ArmPose FUNNEL2 = {0, 95, 230, 70, 43}; //version 2: 0, 85, 235, 60, open/closed
-static const ArmPose DROP_TOWER = {0, 95, 230, 70, 0};  
+static const ArmPose RETRACT = {160, 120, 180, 60, TOWER_CLAW_CLOSED}; 
+static const ArmPose FUNNEL1 = {0, 95, 220, 70, TOWER_CLAW_CLOSED}; 
+static const ArmPose FUNNEL2 = {0, 95, 230, 70, TOWER_CLAW_CLOSED}; //version 2: 0, 85, 235, 60, open/closed
+static const ArmPose DROP_TOWER = {0, 95, 230, 70, CLAW_OPEN};  
 
 //repeat sequence
 static const std::vector<ArmPose> TOWER_DROP_IN_FUNNEL = {
