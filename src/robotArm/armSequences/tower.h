@@ -14,6 +14,14 @@ static const ArmPose GRAB_TOWER_2 = {170, 45, 180, 35, 45};
 static const ArmPose REACH_TOWER_3 = {180, 38, 168, 55, 0}; 
 static const ArmPose GRAB_TOWER_3 = {180, 38, 168, 55, 45}; ; 
 
+
+const char* pickupOrder[] = {
+    "base",
+    "shoulder",
+    "wrist",
+    "elbow",
+    "claw"
+};
 //all tower positions 
 //repeat sequence
 static const std::vector<ArmPose> ALL_TOWERS = {
@@ -46,7 +54,7 @@ void towerSequence(TaskManager& taskManager) {
     taskManager.executeMove(ORIENT); 
 
     for (int step = 0; step < 2*TOWERS_TO_ATTEMPT; step+=2){
-        taskManager.executeMove(ALL_TOWERS[step]); 
+        taskManager.executeMove(ALL_TOWERS[step], pickupOrder); 
         taskManager.executeMove(ALL_TOWERS[step+1]); 
         taskManager.executeSequence(TOWER_DROP_IN_FUNNEL); 
     }
