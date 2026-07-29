@@ -24,6 +24,14 @@ const char* pickupOrder[] = {
     "wrist"
 };
 
+const char* funnelOrder[] = {
+    "shoulder", 
+    "wrist", 
+    "elbow", 
+    "base", 
+    "claw"
+};
+
 //all tower positions 
 //repeat sequence
 static const std::vector<ArmPose> ALL_TOWERS = {
@@ -36,15 +44,15 @@ static const std::vector<ArmPose> ALL_TOWERS = {
 };
 
 //repeat positions 
-static const ArmPose ORIENT = {HOME_BASE, HOME_SHOULDER, HOME_ELBOW, 90, HOME_CLAW};
-static const ArmPose RETRACT = {160, 120, 180, 60, TOWER_CLAW_CLOSED}; 
-static const ArmPose FUNNEL1 = {0, 95, 220, 70, TOWER_CLAW_CLOSED}; 
+//static const ArmPose ORIENT = {HOME_BASE, HOME_SHOULDER, HOME_ELBOW, 90, HOME_CLAW};
+//static const ArmPose RETRACT = {160, 120, 180, 60, TOWER_CLAW_CLOSED}; 
+static const ArmPose FUNNEL1 = {0, 95, 210, 70, TOWER_CLAW_CLOSED}; 
 static const ArmPose FUNNEL2 = {0, 95, 230, 70, TOWER_CLAW_CLOSED}; //version 2: 0, 85, 235, 60, open/closed
 static const ArmPose DROP_TOWER = {0, 95, 230, 70, CLAW_OPEN};  
 
 //repeat sequence
 static const std::vector<ArmPose> TOWER_DROP_IN_FUNNEL = {
-    RETRACT,
+    //RETRACT,
     FUNNEL1,
     FUNNEL2,
     DROP_TOWER,
@@ -53,15 +61,25 @@ static const std::vector<ArmPose> TOWER_DROP_IN_FUNNEL = {
 
 void towerSequence(TaskManager& taskManager) {
 
-    taskManager.executeMove(ORIENT); 
+    //taskManager.executeMove(ORIENT); 
 
     for (int step = 0; step < 2*TOWERS_TO_ATTEMPT; step+=2){
         taskManager.executeMove(ALL_TOWERS[step], pickupOrder); //reach the tower
         delay(250); 
         taskManager.executeMove(ALL_TOWERS[step+1]); //grab the tower
         delay(500); 
-        taskManager.executeSequence(TOWER_DROP_IN_FUNNEL); //bring to funnel & drop it in
+
+
+        //taskManager.executeSequence(TOWER_DROP_IN_FUNNEL); //bring to funnel & drop it in
+        //delay(100); 
+
+        taskManager.executeMove(FUNNEL1, funnelOrder);
         delay(100); 
+        taskManager.executeMove(FUNNEL2);
+        delay(250); 
+        taskManager.executeMove(DROP_TOWER); 
+        delay(100); 
+
     }
 
     
