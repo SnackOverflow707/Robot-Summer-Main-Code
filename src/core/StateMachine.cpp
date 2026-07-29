@@ -99,7 +99,6 @@ const char* getStateName(State state)
         case State::TAPE_FOLLOW_ROCK_CHECK:   return "Tape Follow + Rock Check";
         case State::ROCK_METAL_CHECK:         return "Rock Metal Check";
         case State::ROCK_GRAB:                return "Rock Grab";
-        case State::GRAB_FIRST_TOWER_PIECE:   return "Grab First Tower Piece";
         case State::TAPE_FOLLOW_TO_TOWER:     return "Tape Follow to Tower";
         case State::TOWER_RAM:                return "Tower Ram";
         case State::TOWER_BUILD:              return "Tower Build";
@@ -125,7 +124,6 @@ const char* getStateId(State state)
         case State::TAPE_FOLLOW_ROCK_CHECK:   return "tape-rock";
         case State::ROCK_METAL_CHECK:         return "rock-metal-check";
         case State::ROCK_GRAB:                return "rock-grab";
-        case State::GRAB_FIRST_TOWER_PIECE:   return "grab-tower-piece";
         case State::TAPE_FOLLOW_TO_TOWER:     return "tape-to-tower";
         case State::TOWER_RAM:                return "tower-ram";
         case State::TOWER_BUILD:              return "tower-build";
@@ -203,9 +201,6 @@ static void changeState(State newState)
             RockGrabber::start(rockIndex);
             break;
 
-        case State::GRAB_FIRST_TOWER_PIECE:
-            //TowerPieceGrabber::begin();
-            break;
 
         case State::TAPE_FOLLOW_TO_TOWER:
             resetTapePID();
@@ -224,7 +219,8 @@ static void changeState(State newState)
             break;
 
         case State::RETURN_TO_TAPE:
-            //TapeReturn::begin();
+            TapeReturn::begin();
+            TapeReturn::start();
             break;
 
         case State::SLOW_TAPE_FOLLOWING:
@@ -339,7 +335,7 @@ void setEnabled(bool value)
     else
     {
         enabled = false;
-        changeState(State::STOPPED);
+        changeState(State::ENDPOINT);
     }
 }
 
@@ -419,12 +415,6 @@ void update(const Inputs& inputs)
                 changeState(State::ROCK_METAL_CHECK);
                 break;
             }
-
-            if (consumeSideTapeTrigger(inputs.sideTapeDetected) &&
-                sideTapeTriggerCount == 1)
-            {
-                changeState(State::GRAB_FIRST_TOWER_PIECE);
-            }
             break;
 
         case State::ROCK_METAL_CHECK:
@@ -475,14 +465,6 @@ void update(const Inputs& inputs)
             }
             break;
 
-        case State::GRAB_FIRST_TOWER_PIECE:
-            /*TowerPieceGrabber::update();
-
-            if (TowerPieceGrabber::isFinished())
-            {
-                changeState(State::TAPE_FOLLOW_TO_TOWER);
-            }*/
-            break;
 
         case State::TAPE_FOLLOW_TO_TOWER:
             {const SideSensorStatus sideStatus = getSideSensorStatus();
@@ -517,12 +499,12 @@ void update(const Inputs& inputs)
             break;
 
         case State::RETURN_TO_TAPE:
-            /*TapeReturn::update();
+            TapeReturn::update();
 
-            if (consumeReturnTapeTrigger(inputs.returnTapeDetected))
+            if (TapeReturn::isFinished())
             {
                 changeState(State::SLOW_TAPE_FOLLOWING);
-            }*/
+            }
             break;
 
         case State::SLOW_TAPE_FOLLOWING:
@@ -598,7 +580,6 @@ bool requestStateById(const String& stateId)
     if (stateId == "tape-rock")          return requestState(State::TAPE_FOLLOW_ROCK_CHECK);
     if (stateId == "rock-metal-check")   return requestState(State::ROCK_METAL_CHECK);
     if (stateId == "rock-grab")          return requestState(State::ROCK_GRAB);
-    if (stateId == "grab-tower-piece")   return requestState(State::GRAB_FIRST_TOWER_PIECE);
     if (stateId == "tape-to-tower")      return requestState(State::TAPE_FOLLOW_TO_TOWER);
     if (stateId == "tower-ram")          return requestState(State::TOWER_RAM);
     if (stateId == "tower-build")        return requestState(State::TOWER_BUILD);
