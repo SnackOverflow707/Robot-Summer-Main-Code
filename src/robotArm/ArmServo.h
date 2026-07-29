@@ -34,7 +34,7 @@
 #define ANALOG_MIN_US    500 //increasing the PWM range beyond the datasheet allowed us to reach full ROM
 #define ANALOG_MAX_US    2500
 #define ANALOG_MIN_ANGLE    0
-#define ANALOG_MAX_ANGLE  270 /
+#define ANALOG_MAX_ANGLE  270 
 
 #define ARM_SERVO_FREQ_HZ   50   // standard 50 Hz (20 ms period)
 #define ARM_SERVO_TIMER_BITS 12  
