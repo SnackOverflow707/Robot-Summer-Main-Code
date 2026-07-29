@@ -27,14 +27,14 @@
 
 // Home position angles
 #define HOME_BASE     130
-#define HOME_SHOULDER 135
-#define HOME_ELBOW    230
-#define HOME_WRIST    0
-#define HOME_CLAW      0 // fully open
+#define HOME_SHOULDER 70
+#define HOME_ELBOW    235
+#define HOME_WRIST    35
+#define HOME_CLAW      25 
 
 //offset angles based on servo mounting, if needed
 #define BASE_OFFSET 0 
-#define SHOULDER_OFFSET 5  
+#define SHOULDER_OFFSET 0  
 #define ELBOW_OFFSET 0
 #define WRIST_OFFSET 0
 #define CLAW_OFFSET 0
@@ -49,7 +49,6 @@
 
 //specific joint angles. Default min/max are in ArmServo.h  
 #define MAX_ANGLE_CLAW 45
-#define CLAW_CLOSED_TOWER MAX_ANGLE_CLAW 
 
 #define CLAW_CLOSED MAX_ANGLE_CLAW  
 #define CLAW_OPEN MIN_ANGLE 

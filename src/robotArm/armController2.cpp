@@ -74,7 +74,7 @@ void ArmController2::begin()
     }
 
     configureLimits(); 
-    startup();
+    goHome(); 
     //clawSwitch.begin(); 
     
 }
@@ -137,10 +137,10 @@ void ArmController2::moveJointsSync(ArmServo& servoA, ArmServo& servoB, int angl
 
 void ArmController2::startup() {
     setBase(130); 
-    setShoulder(205);
+    setShoulder(70);
     setElbow(235); 
     setWrist(35); 
-    setClaw(20);  
+    setClaw(25);  
 }
 
 
