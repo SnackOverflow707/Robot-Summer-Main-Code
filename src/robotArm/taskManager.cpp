@@ -40,6 +40,7 @@ void TaskManager::executeMove(
         {
             printf("Joint name not recognized: %s\n", jointOrder[word]);
         }
+        delay(100); 
     }
 }
 
@@ -66,6 +67,8 @@ bool TaskManager::checkTime(unsigned long startTime, unsigned long max_time) {
     return (currentTime - startTime) <= max_time;
 }
 
+
+//unnecessary rn 
 bool TaskManager::objectGripCheckSequence(const ArmPose& objectLoc, int nAttempts) {
     delay(DELAY);
 

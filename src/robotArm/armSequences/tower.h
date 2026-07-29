@@ -8,20 +8,20 @@
 #define TOWER_CLAW_CLOSED 43
 
 //tower positions 
-static const ArmPose REACH_TOWER_1 = {160, 170, 235, 70, 20}; 
-static const ArmPose GRAB_TOWER_1 = {160, 170, 235, 70, TOWER_CLAW_CLOSED}; 
-static const ArmPose REACH_TOWER_2 = {165, 175, 220, 65, 0}; 
-static const ArmPose GRAB_TOWER_2 = {165, 175, 220, 65, TOWER_CLAW_CLOSED}; 
-static const ArmPose REACH_TOWER_3 = {180, 195, 170, 25, 0}; 
-static const ArmPose GRAB_TOWER_3 = {180, 195, 170, 25, TOWER_CLAW_CLOSED}; 
+static const ArmPose REACH_TOWER_1 = {140, 175, 235, 70, 35}; 
+static const ArmPose GRAB_TOWER_1 = {140, 175, 235, 70, TOWER_CLAW_CLOSED}; 
+static const ArmPose REACH_TOWER_2 = {150, 180, 220, 65, 30}; 
+static const ArmPose GRAB_TOWER_2 = {150, 180, 220, 65, TOWER_CLAW_CLOSED}; 
+static const ArmPose REACH_TOWER_3 = {165, 200, 175, 25, 0}; 
+static const ArmPose GRAB_TOWER_3 = {165, 200, 175, 25, TOWER_CLAW_CLOSED}; 
 
 
 const char* pickupOrder[] = {
-    "shoulder",
+    "claw", 
     "base",
+    "shoulder",
     "elbow",
-    "wrist",
-    "claw"
+    "wrist"
 };
 
 //all tower positions 
@@ -36,7 +36,7 @@ static const std::vector<ArmPose> ALL_TOWERS = {
 };
 
 //repeat positions 
-static const ArmPose ORIENT = {HOME_BASE, HOME_SHOULDER, HOME_ELBOW, 90, HOME_CLAW}; //base turns 90deg, claw is open
+static const ArmPose ORIENT = {HOME_BASE, HOME_SHOULDER, HOME_ELBOW, 90, HOME_CLAW};
 static const ArmPose RETRACT = {160, 120, 180, 60, TOWER_CLAW_CLOSED}; 
 static const ArmPose FUNNEL1 = {0, 95, 220, 70, TOWER_CLAW_CLOSED}; 
 static const ArmPose FUNNEL2 = {0, 95, 230, 70, TOWER_CLAW_CLOSED}; //version 2: 0, 85, 235, 60, open/closed
@@ -48,7 +48,7 @@ static const std::vector<ArmPose> TOWER_DROP_IN_FUNNEL = {
     FUNNEL1,
     FUNNEL2,
     DROP_TOWER,
-    ORIENT
+    //ORIENT
 };
 
 void towerSequence(TaskManager& taskManager) {
@@ -56,9 +56,12 @@ void towerSequence(TaskManager& taskManager) {
     taskManager.executeMove(ORIENT); 
 
     for (int step = 0; step < 2*TOWERS_TO_ATTEMPT; step+=2){
-        taskManager.executeMove(ALL_TOWERS[step], pickupOrder); 
-        taskManager.executeMove(ALL_TOWERS[step+1]); 
-        taskManager.executeSequence(TOWER_DROP_IN_FUNNEL); 
+        taskManager.executeMove(ALL_TOWERS[step], pickupOrder); //reach the tower
+        delay(250); 
+        taskManager.executeMove(ALL_TOWERS[step+1]); //grab the tower
+        delay(500); 
+        taskManager.executeSequence(TOWER_DROP_IN_FUNNEL); //bring to funnel & drop it in
+        delay(100); 
     }
 
     
