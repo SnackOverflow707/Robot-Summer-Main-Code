@@ -83,14 +83,10 @@ void ArmController2::begin()
 void ArmController2::configureLimits()
 {
     _baseServo.setLimits();
-
     _shoulderAServo.setLimits();
     _shoulderBServo.setLimits();
-
     _elbowServo.setLimits();
-
     _wristServo.setLimits();
-
     _clawServo.setLimits();
 }
 
@@ -101,9 +97,9 @@ void ArmController2::moveJoint(ArmServo& servo, int angle, int omega, int offset
 
 // Steps both servos together, one loop, so they arrive at their targets
 // simultaneously instead of one finishing before the other starts.
-void ArmController2::moveJointPair(ArmServo& servoA, ArmServo& servoB, int angle, int omega, int offset) {
-    int targetA = angle + offset;
-    int targetB = (DS3235_MAX_ANGLE - angle) + offset;
+void ArmController2::moveJointsSync(ArmServo& servoA, ArmServo& servoB, int angleA, int angleB, int omega) {
+    int targetA = angleA;
+    int targetB = angleB;
 
     int startA = servoA.read();
     int startB = servoB.read();
@@ -183,7 +179,7 @@ void ArmController2::setBase(int angle) {
     moveJoint(_baseServo, angle, OMEGA_BASE, BASE_OFFSET);
 }
 void ArmController2::setShoulder(int angle) {
-    moveJointPair(_shoulderAServo, _shoulderBServo, angle, OMEGA_SHOULDER, SHOULDER_OFFSET);
+    moveJointsSync(_shoulderAServo, _shoulderBServo, angle, (DS3235_MAX_ANGLE - angle), OMEGA_SHOULDER);
 }
 void ArmController2::setElbow(int angle) {
     moveJoint(_elbowServo, angle, OMEGA_ELBOW, ELBOW_OFFSET);

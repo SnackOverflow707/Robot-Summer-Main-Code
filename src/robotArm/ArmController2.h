@@ -98,7 +98,7 @@ ArmServo _clawServo;
     ArmServo* servos[NSERVOS];  //no initialization because it's dangerous 
 
     void moveJoint(ArmServo& servo, int angle, int omega, int offset);
-    void moveJointPair(ArmServo& servoA, ArmServo& servoB, int angle, int omega, int offset);
+    void moveJointsSync(ArmServo& servoA, ArmServo& servoB, int angleA, int angleB, int omega);
     void moveClaw(ArmServo& servo, int angle, int omega);
 
 };
