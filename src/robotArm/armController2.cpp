@@ -74,7 +74,7 @@ void ArmController2::begin()
     }
 
     configureLimits(); 
-    startup();
+    goHome(); 
     //clawSwitch.begin(); 
     
 }

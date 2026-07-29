@@ -27,10 +27,10 @@
 
 // Home position angles
 #define HOME_BASE     130
-#define HOME_SHOULDER 135
-#define HOME_ELBOW    230
-#define HOME_WRIST    0
-#define HOME_CLAW      0 // fully open
+#define HOME_SHOULDER 70
+#define HOME_ELBOW    235
+#define HOME_WRIST    35
+#define HOME_CLAW      25 
 
 //offset angles based on servo mounting, if needed
 #define BASE_OFFSET 0 
