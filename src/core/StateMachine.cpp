@@ -149,11 +149,7 @@ const char* getStateId()
 static void stopAllMechanisms()
 {
     RockGrabber::stop();
-   /* TowerPieceGrabber::stop();
-    TowerRam::stop();
-    TowerBuilder::stop();
     TapeReturn::stop();
-    */
     TowerBuilder::stop();
     SolarPanelRipper::stop();
     IRAligner::stop();
@@ -186,7 +182,7 @@ static void changeState(State newState)
     {
         case State::TAPE_FOLLOW_ROCK_CHECK:
             resetTapePID();
-            //setBaseSpeed(100);
+            setTapeBaseSpeed(100);
             setTapeFollowing(true);
             break;
 
@@ -204,7 +200,7 @@ static void changeState(State newState)
 
         case State::TAPE_FOLLOW_TO_TOWER:
             resetTapePID();
-            //setTapeBaseSpeed(120);
+            setTapeBaseSpeed(120);
             setTapeFollowing(true);
             break;
 
