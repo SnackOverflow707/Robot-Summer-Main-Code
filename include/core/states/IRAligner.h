@@ -6,6 +6,7 @@ namespace IRAligner
     void start();
     void update();
     void stop();
+    void alignRobot(); 
 
     bool isFinished();
     bool hasFailed();

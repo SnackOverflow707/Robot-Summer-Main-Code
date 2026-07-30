@@ -292,7 +292,7 @@ we also need the general switch state function that tells the robot which state 
 //static float overshootDistance  = 0.0f; //meters
 
 //static constexpr float MAX_RETURN_DISTANCE = 0.30f;  // safety cap
-//static constexpr float RETURN_STOP_EPSILON = 0.01f;  // 1cm tolerance
+static constexpr float RETURN_STOP_EPSILON = 0.01f;  // 1cm tolerance
 
 static float xCurrent = 0.0f; 
 static float yCurrent = 0.0f; 
@@ -391,10 +391,20 @@ static bool hasPeakPassed() {
 
 }
 
+static void alignRobot() {
+    //will need to calibrate stuff based off where the robot stops after RETURN_TO_PEAK;
+    //can't assume it's perfectly in front of the beacon. Just measure or something. 
+
+    //will also need to calibrate the degrees for rotation; figure out what orientation 
+    //the panels are in the sensors' world. 
+
+}
+
 
 //state switching 
 static void changeState(IRAlignState newState) {
 
+    drive.stop();
     currentState = newState; 
     stateStartTime = millis();
     
@@ -405,16 +415,25 @@ static void changeState(IRAlignState newState) {
         }
         
         case IRAlignState::SEARCH_FOR_PEAK: {
+            resetDetectionFilter();
+            resetPeakTracking();
             drive.forward(FORWARD_SCAN_SPEED);
-            if (hasPeakPassed) {
-                currentState = IRAlignState::RETURN_TO_PEAK; 
-                break; 
-            }
+            break;
         }
 
         case IRAlignState::RETURN_TO_PEAK: {
             //gotta drive until we satisfy dxToMax and dyToMax, then break
+            drive.driveTo(dxToPeak, dyToPeak, RETURN_SPEED); 
+            break; 
         }
+
+        case IRAlignState::ALIGN_ROBOT: {
+
+            //add function 
+            break; 
+        }
+
+
         case IRAlignState::FINISHED:
         case IRAlignState::NOT_FOUND: {
             drive.stop();
@@ -438,17 +457,73 @@ void begin() {
 
 //trigger an IRAligning attempt. NOTE: this is called in the upper-level state machine ONCE A VALID PEAK HAS BEEN DETECTED.  
 void start() {
-    currentState = IRAlignState::SEARCH_FOR_PEAK; 
+    changeState(IRAlignState::SEARCH_FOR_PEAK);
 }
 
 
-void update() {
+void update()
+{
+    // Keep the filter fed every tick, regardless of state 
+    updateDetectionFilter();
 
+    switch (currentState)
+    {
+        case IRAlignState::IDLE: {
+            break;
+        }
+
+        case IRAlignState::SEARCH_FOR_PEAK: {
+            if (hasPeakPassed()) {
+                changeState(IRAlignState::RETURN_TO_PEAK);
+                break;
+            }
+            if (millis() - stateStartTime >= FORWARD_SEARCH_TIME_MS) {
+                changeState(IRAlignState::NOT_FOUND);
+            }
+            break;
+        }
+
+        case IRAlignState::RETURN_TO_PEAK:
+        {
+            if (isFlowSensorDataValid()) {
+                const UART::FlowPose& flowData = UART::getFlowPose();
+                const float dx = flowData.x - xOfMax;
+                const float dy = flowData.y - yOfMax;
+                const float distanceToPeak = sqrtf(dx * dx + dy * dy);
+
+                if (distanceToPeak <= RETURN_STOP_EPSILON) {
+                    changeState(IRAlignState::ALIGN_ROBOT);
+                    break;
+                }
+            }
+
+            // Safety fallback
+            if (millis() - stateStartTime >= MAX_RETURN_TIME_MS)
+            {
+                changeState(IRAlignState::NOT_FOUND);
+            }
+
+            break;
+        }
+
+        case IRAlignState::ALIGN_ROBOT:
+        {
+            alignRobot(); 
+            changeState(IRAlignState::FINISHED);
+            break;
+        }
+
+        case IRAlignState::FINISHED:
+        case IRAlignState::NOT_FOUND:
+        {
+            drive.stop();
+            break;
+        }
+    }
 }
-
 
 void stop() {
-
+    changeState(IRAlignState::IDLE);
 }
 
 
