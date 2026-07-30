@@ -104,7 +104,7 @@ const char* getStateName(State state)
         case State::TOWER_BUILD:              return "Tower Build";
         case State::RETURN_TO_TAPE:           return "Return to Tape";
         case State::SLOW_TAPE_FOLLOWING:      return "Slow Tape Following";
-        case State::IR_ALLIGNING:         return "IR Tune Backward";
+        case State::IR_ALIGNING:         return "IR Tune Backward";
         case State::RIP_SOLAR_PANEL:          return "Rip Solar Panel";
         case State::ENDPOINT:                 return "Endpoint";
         case State::STOPPED:                  return "Stopped";
@@ -129,7 +129,7 @@ const char* getStateId(State state)
         case State::TOWER_BUILD:              return "tower-build";
         case State::RETURN_TO_TAPE:           return "return-to-tape";
         case State::SLOW_TAPE_FOLLOWING:      return "slow-tape";
-        case State::IR_ALLIGNING:             return "ir-alligning";
+        case State::IR_ALIGNING:              return "ir-aligning";
         case State::RIP_SOLAR_PANEL:          return "rip-panel";
         case State::ENDPOINT:                 return "endpoint";
         case State::STOPPED:                  return "stopped";
@@ -226,7 +226,7 @@ static void changeState(State newState)
             setTapeFollowing(true);
             break;
 
-        case State::IR_ALLIGNING:
+        case State::IR_ALIGNING:
 
             IRAligner::begin();
             IRAligner::start();
@@ -509,11 +509,11 @@ void update(const Inputs& inputs)
             if (irDetected && irTriggerArmed)
             {
                 irTriggerArmed = false;
-                changeState(State::IR_ALLIGNING);
+                changeState(State::IR_ALIGNING);
             }
             break;
 
-        case State::IR_ALLIGNING:
+        case State::IR_ALIGNING:
             IRAligner::update();
 
             if (IRAligner::isFinished())
@@ -581,7 +581,7 @@ bool requestStateById(const String& stateId)
     if (stateId == "tower-build")        return requestState(State::TOWER_BUILD);
     if (stateId == "return-to-tape")     return requestState(State::RETURN_TO_TAPE);
     if (stateId == "slow-tape")          return requestState(State::SLOW_TAPE_FOLLOWING);
-    if (stateId == "ir-alligning")          return requestState(State::IR_ALLIGNING);
+    if (stateId == "ir-aligning")          return requestState(State::IR_ALIGNING);
     if (stateId == "rip-panel")          return requestState(State::RIP_SOLAR_PANEL);
     if (stateId == "endpoint")           return requestState(State::ENDPOINT);
     if (stateId == "stopped")            return requestState(State::STOPPED);
