@@ -26,6 +26,8 @@ public:
   void rotateAboutCenter(int rotateSpeed);
   void leftWheelsForward(int speed);
 
+  void driveTo(float dx, float dy, int speed); 
+
 private:
   MotorDriver frontLeft;
   MotorDriver frontRight;
