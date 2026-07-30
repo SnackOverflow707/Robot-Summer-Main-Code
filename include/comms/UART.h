@@ -25,6 +25,25 @@ struct MetalData
     bool valid;
 };
 
+struct PoseData
+{
+    float x;
+    float y;
+    float theta;
+
+    float vx;
+    float vy;
+    float omega;
+
+    uint32_t frameCount;
+    unsigned long lastUpdateMs;
+    bool valid;
+};
+
+PoseData getPoseData();
+
+
+
 void begin();
 void update();
 

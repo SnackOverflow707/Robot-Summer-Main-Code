@@ -5,7 +5,7 @@
 
 namespace UART
 {
-
+static void processPoseFrame();
 static constexpr uint8_t MAX_PAYLOAD = 32;
 static constexpr uint8_t METAL_DETECTOR_COUNT = 2;
 
@@ -18,6 +18,7 @@ static constexpr uint8_t FRAME_SYNC = 0xAA;
 
 static constexpr uint8_t FRAME_TYPE_IR = 0x01;
 static constexpr uint8_t FRAME_TYPE_METAL = 0x02;
+static constexpr uint8_t FRAME_TYPE_POSE  = 0x03;
 
 static HardwareSerial uart(UART_NUMBER);
 
@@ -43,6 +44,21 @@ static Data latestData =
     .mag1 = 0,
     .mag2 = 0,
     .mask = 0,
+    .frameCount = 0,
+    .lastUpdateMs = 0,
+    .valid = false
+};
+
+static PoseData latestPoseData =
+{
+    .x = 0.0f,
+    .y = 0.0f,
+    .theta = 0.0f,
+
+    .vx = 0.0f,
+    .vy = 0.0f,
+    .omega = 0.0f,
+
     .frameCount = 0,
     .lastUpdateMs = 0,
     .valid = false
@@ -164,6 +180,10 @@ static void processCompleteFrame()
 
         case FRAME_TYPE_METAL:
             processMetalFrame();
+            break;
+
+        case FRAME_TYPE_POSE:
+            processPoseFrame();
             break;
 
         default:
@@ -333,6 +353,33 @@ bool isSelectedDetected()
     }
 
     return (latestData.mask & 0x02) != 0;
+}
+
+
+static void processPoseFrame()
+{
+    static constexpr uint8_t EXPECTED_LENGTH =
+        6 * sizeof(float);
+
+    if (payloadLength != EXPECTED_LENGTH)
+    {
+        return;
+    }
+
+    memcpy(&latestPoseData.x,     payload + 0 * sizeof(float), sizeof(float));
+    memcpy(&latestPoseData.y,     payload + 1 * sizeof(float), sizeof(float));
+    memcpy(&latestPoseData.theta, payload + 2 * sizeof(float), sizeof(float));
+    memcpy(&latestPoseData.vx,    payload + 3 * sizeof(float), sizeof(float));
+    memcpy(&latestPoseData.vy,    payload + 4 * sizeof(float), sizeof(float));
+    memcpy(&latestPoseData.omega, payload + 5 * sizeof(float), sizeof(float));
+
+    latestPoseData.frameCount++;
+    latestPoseData.lastUpdateMs = millis();
+    latestPoseData.valid = true;
+}
+PoseData getPoseData()
+{
+    return latestPoseData;
 }
 
 } // namespace UART

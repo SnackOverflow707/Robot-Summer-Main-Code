@@ -324,9 +324,13 @@ _server.on("/stateMachine/setState", HTTP_GET, [this]()
             getTapeFollowerStatus();
         const SideSensorStatus sideStatus = getSideSensorStatus();
         const UART::Data uartData = UART::getData();
+        const UART::PoseData poseData = UART::getPoseData();
+        const UART::MetalData metal0 = UART::getMetalData(0);
+        const UART::MetalData metal1 = UART::getMetalData(1);
+
 
         String json;
-        json.reserve(450);
+        json.reserve(900);
 
         json += "{";
 
@@ -418,6 +422,7 @@ const bool selectedDetected =
         uartData.mag2
     );
 
+
 json += ",\"switchState\":";
 json += mag1Selected ? "true" : "false";
 
@@ -446,6 +451,56 @@ json += selectedDetected ? "true" : "false";
         json += ",\"claw\":"     + String(_arm.getClaw());
         json += ",\"towerRamSwitch\":";
         json += (TowerRam::isMicroswitchPressed() ? "true" : "false");
+        json += ",\"poseX\":";
+json += String(poseData.x, 3);
+
+json += ",\"poseY\":";
+json += String(poseData.y, 3);
+
+json += ",\"poseTheta\":";
+json += String(poseData.theta, 3);
+
+json += ",\"poseVx\":";
+json += String(poseData.vx, 3);
+
+json += ",\"poseVy\":";
+json += String(poseData.vy, 3);
+
+json += ",\"poseOmega\":";
+json += String(poseData.omega, 3);
+
+json += ",\"poseValid\":";
+json += poseData.valid ? "true" : "false";
+
+json += ",\"poseFrameCount\":";
+json += String(poseData.frameCount);
+
+json += ",\"poseAgeMs\":";
+json += poseData.valid
+    ? String(millis() - poseData.lastUpdateMs)
+    : String(-1);
+    json += ",\"metal0Hz\":";
+    json += String(metal0.frequencyHz, 2);
+    
+    json += ",\"metal0Valid\":";
+    json += metal0.valid ? "true" : "false";
+    
+    json += ",\"metal0AgeMs\":";
+    json += metal0.valid
+        ? String(millis() - metal0.lastUpdateMs)
+        : String(-1);
+    
+    
+    json += ",\"metal1Hz\":";
+    json += String(metal1.frequencyHz, 2);
+    
+    json += ",\"metal1Valid\":";
+    json += metal1.valid ? "true" : "false";
+    
+    json += ",\"metal1AgeMs\":";
+    json += metal1.valid
+        ? String(millis() - metal1.lastUpdateMs)
+        : String(-1);
 
         json += "}";
 
@@ -1196,6 +1251,102 @@ void WifiManager::showControlPage()
     Tower Ram Switch:
     <span id="towerRamSwitch">Waiting...</span>
 </div>
+<div class="panel">
+    <h2>Robot Pose</h2>
+
+    <h3>Position</h3>
+
+    <p>
+        X:
+        <span id="poseX" class="value">--</span>
+    </p>
+
+    <p>
+        Y:
+        <span id="poseY" class="value">--</span>
+    </p>
+
+    <p>
+        Heading:
+        <span id="poseTheta" class="value">--</span>
+    </p>
+
+    <h3>Velocity</h3>
+
+    <p>
+        Vx:
+        <span id="poseVx" class="value">--</span>
+    </p>
+
+    <p>
+        Vy:
+        <span id="poseVy" class="value">--</span>
+    </p>
+
+    <p>
+        Omega:
+        <span id="poseOmega" class="value">--</span>
+    </p>
+
+    <h3>UART</h3>
+
+    <p>
+        Pose frames:
+        <span id="poseFrameCount" class="value">--</span>
+    </p>
+
+    <p>
+        Last pose age:
+        <span id="poseAgeMs" class="value">--</span> ms
+    </p>
+
+    <p>
+        Status:
+        <span id="poseStatus" class="value">Waiting...</span>
+    </p>
+</div>
+<div class="panel">
+    <h2>Metal Detectors</h2>
+
+    <div class="sensor-container">
+
+        <div class="sensor">
+            <h3>Detector 0</h3>
+
+            <p>
+                Frequency:
+                <span id="metal0Hz" class="value">--</span> Hz
+            </p>
+
+            <p>
+                Last frame age:
+                <span id="metal0AgeMs" class="value">--</span> ms
+            </p>
+
+            <p id="metal0Status" class="value">
+                Waiting...
+            </p>
+        </div>
+
+        <div class="sensor">
+            <h3>Detector 1</h3>
+
+            <p>
+                Frequency:
+                <span id="metal1Hz" class="value">--</span> Hz
+            </p>
+
+            <p>
+                Last frame age:
+                <span id="metal1AgeMs" class="value">--</span> ms
+            </p>
+
+            <p id="metal1Status" class="value">
+                Waiting...
+            </p>
+        </div>
+
+    </div>
 </div>
 
 <script>
@@ -1357,6 +1508,88 @@ async function updateStatus()
         }
 
         const data = await response.json();
+        document.getElementById("poseX").textContent =
+    Number(data.poseX).toFixed(3);
+
+document.getElementById("poseY").textContent =
+    Number(data.poseY).toFixed(3);
+
+document.getElementById("poseTheta").textContent =
+    Number(data.poseTheta).toFixed(3);
+document.getElementById("metal0Hz").textContent =
+    Number(data.metal0Hz).toFixed(2);
+
+document.getElementById("metal0AgeMs").textContent =
+    data.metal0AgeMs;
+
+document.getElementById("metal1Hz").textContent =
+    Number(data.metal1Hz).toFixed(2);
+
+document.getElementById("metal1AgeMs").textContent =
+    data.metal1AgeMs;
+
+
+const metal0Status =
+    document.getElementById("metal0Status");
+
+if (!data.metal0Valid)
+{
+    metal0Status.textContent = "No data";
+}
+else if (data.metal0AgeMs > 1000)
+{
+    metal0Status.textContent = "Data stale";
+}
+else
+{
+    metal0Status.textContent = "Receiving";
+}
+
+
+const metal1Status =
+    document.getElementById("metal1Status");
+
+if (!data.metal1Valid)
+{
+    metal1Status.textContent = "No data";
+}
+else if (data.metal1AgeMs > 1000)
+{
+    metal1Status.textContent = "Data stale";
+}
+else
+{
+    metal1Status.textContent = "Receiving";
+}
+document.getElementById("poseVx").textContent =
+    Number(data.poseVx).toFixed(3);
+
+document.getElementById("poseVy").textContent =
+    Number(data.poseVy).toFixed(3);
+
+document.getElementById("poseOmega").textContent =
+    Number(data.poseOmega).toFixed(3);
+
+document.getElementById("poseFrameCount").textContent =
+    data.poseFrameCount;
+
+document.getElementById("poseAgeMs").textContent =
+    data.poseAgeMs;
+const poseStatus =
+    document.getElementById("poseStatus");
+
+if (!data.poseValid)
+{
+    poseStatus.textContent = "No data";
+}
+else if (data.poseAgeMs > 1000)
+{
+    poseStatus.textContent = "Data stale";
+}
+else
+{
+    poseStatus.textContent = "Receiving";
+}
         document.getElementById(
             "robotState"
         ).textContent = data.robotState;
