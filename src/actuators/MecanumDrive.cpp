@@ -4,6 +4,16 @@
 
 #include "actuators/MecanumDrive.h"
 #include "config/pins.h"
+#include "comms/UART.h"
+
+namespace
+{
+// FlowPose x/y are meters, theta is radians (world frame) - see
+// Sensor_ESP_Arduino/src/Flowsensor/Flowsensor.cpp.
+constexpr float DRIVE_TO_TOLERANCE_M = 0.02f;
+constexpr float DRIVE_TO_SLOWDOWN_RADIUS_M = 0.15f;
+constexpr unsigned long DRIVE_TO_TIMEOUT_MS = 4000;
+} // namespace
 
 MecanumDrive::MecanumDrive()
     : frontLeft(
@@ -147,4 +157,65 @@ void MecanumDrive::leftWheelsForward(int speed)
 
     frontRight.setSpeed(0);
     backRight.setSpeed(0);
+}
+
+void MecanumDrive::driveTo(float dx, float dy, int speed) {
+  UART::update();
+  const UART::FlowPose start = UART::getFlowPose();
+
+  if (!start.valid) {
+    stop();
+    return;
+  }
+
+  const float targetX = start.x + dx;
+  const float targetY = start.y + dy;
+
+  const unsigned long startTime = millis();
+
+  while (true) {
+    UART::update();
+    const UART::FlowPose pose = UART::getFlowPose();
+
+    // Lost tracking mid-move - safer to stop than to keep driving blind.
+    if (!pose.valid) {
+      break;
+    }
+
+    const float errorX = targetX - pose.x;
+    const float errorY = targetY - pose.y;
+    const float distance = sqrtf(errorX * errorX + errorY * errorY);
+
+    if (distance <= DRIVE_TO_TOLERANCE_M) {
+      break;
+    }
+
+    if (millis() - startTime >= DRIVE_TO_TIMEOUT_MS) {
+      break;
+    }
+
+    // Rotate the world-frame error into the robot's body frame so we can
+    // command forward/strafe directly - a mecanum base doesn't need to
+    // turn to face the target the way a differential drive would.
+    const float cosTheta = cosf(pose.theta);
+    const float sinTheta = sinf(pose.theta);
+    const float forwardError = errorX * cosTheta + errorY * sinTheta;
+    const float strafeError = -errorX * sinTheta + errorY * cosTheta;
+
+    // Ramp speed down as we approach the target to avoid overshoot.
+    const float speedScale = min(1.0f, distance / DRIVE_TO_SLOWDOWN_RADIUS_M);
+    const float commandMagnitude = speed * speedScale;
+
+    const int forwardSpeed = static_cast<int>(commandMagnitude * (forwardError / distance));
+    const int strafeSpeed = static_cast<int>(commandMagnitude * (strafeError / distance));
+
+    frontLeft.setSpeed(constrain(forwardSpeed + strafeSpeed, -255, 255));
+    frontRight.setSpeed(constrain(forwardSpeed - strafeSpeed, -255, 255));
+    backLeft.setSpeed(constrain(forwardSpeed - strafeSpeed, -255, 255));
+    backRight.setSpeed(constrain(forwardSpeed + strafeSpeed, -255, 255));
+
+    delay(5);
+  }
+
+  stop();
 }
