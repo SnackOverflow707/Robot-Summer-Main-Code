@@ -228,7 +228,6 @@ static void changeState(State newState)
 
         case State::IR_ALIGNING:
 
-            IRAligner::begin();
             IRAligner::start();
             break;
 
@@ -505,6 +504,7 @@ void update(const Inputs& inputs)
 
         case State::SLOW_TAPE_FOLLOWING:
             tapeFollowStep();
+            IRAligner::update();
 
             if (irDetected && irTriggerArmed)
             {

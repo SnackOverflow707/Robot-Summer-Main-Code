@@ -180,7 +180,7 @@ static bool uartDataIsFresh()
 /*NOTE: we decided as a team to assume that the data is always fresh (aka updated very frequently) so we don't
 check for freshness.*/
 static bool isFlowSensorDataValid() {
-    const UART::FlowPose& flowData = UART::getFlowPose();
+    const UART::PoseData& flowData = UART::getPoseData();
     return (flowData.valid); 
 }
 
@@ -331,7 +331,7 @@ static bool hasPeakPassed() {
     const UART::Data& data = UART::getData();
 
     //check if UART data is valid and record current position if so. 
-    const UART::FlowPose& flowData = UART::getFlowPose();
+    const UART::PoseData& flowData = UART::getPoseData();
     if (!isFlowSensorDataValid()) {
         return false; 
     }
@@ -391,7 +391,7 @@ static bool hasPeakPassed() {
 
 }
 
-static void alignRobot() {
+void alignRobot() {
     //will need to calibrate stuff based off where the robot stops after RETURN_TO_PEAK;
     //can't assume it's perfectly in front of the beacon. Just measure or something. 
 
@@ -415,8 +415,9 @@ static void changeState(IRAlignState newState) {
         }
         
         case IRAlignState::SEARCH_FOR_PEAK: {
-            resetDetectionFilter();
-            resetPeakTracking();
+            // Deliberately not resetting the filter/peak tracking here:
+            // tracking may already be underway from Slow Tape Following
+            // (see begin()), and resetting would throw that away.
             drive.forward(FORWARD_SCAN_SPEED);
             break;
         }
@@ -455,9 +456,17 @@ void begin() {
     drive.stop();
 }
 
-//trigger an IRAligning attempt. NOTE: this is called in the upper-level state machine ONCE A VALID PEAK HAS BEEN DETECTED.  
+//trigger an IRAligning attempt. NOTE: this is called in the upper-level state machine ONCE A VALID PEAK HAS BEEN DETECTED.
 void start() {
-    changeState(IRAlignState::SEARCH_FOR_PEAK);
+    // If we were already tracking (and passed) the peak while idle
+    // during Slow Tape Following, go straight back to it instead of
+    // resetting and blindly scanning forward again.
+    const bool peakAlreadyPassed =
+        validPeakSeen && fallingSampleCount >= REQUIRED_FALLING_SAMPLES;
+
+    changeState(peakAlreadyPassed
+        ? IRAlignState::RETURN_TO_PEAK
+        : IRAlignState::SEARCH_FOR_PEAK);
 }
 
 
@@ -469,6 +478,11 @@ void update()
     switch (currentState)
     {
         case IRAlignState::IDLE: {
+            // Track the signal even before formally entering IR
+            // aligning, so a peak passed during Slow Tape Following
+            // isn't missed. Ignore the return value here -- the
+            // top-level state machine still decides when to act on it.
+            hasPeakPassed();
             break;
         }
 
@@ -486,7 +500,7 @@ void update()
         case IRAlignState::RETURN_TO_PEAK:
         {
             if (isFlowSensorDataValid()) {
-                const UART::FlowPose& flowData = UART::getFlowPose();
+                const UART::PoseData& flowData = UART::getPoseData();
                 const float dx = flowData.x - xOfMax;
                 const float dy = flowData.y - yOfMax;
                 const float distanceToPeak = sqrtf(dx * dx + dy * dy);
