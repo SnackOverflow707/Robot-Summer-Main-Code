@@ -42,18 +42,26 @@ void loop()
     updateTapeSensors();
     checkForSideTape();
 
-    const UART::Data& sensorData = UART::getData();
-    const TapeFollowerStatus tapeStatus = getTapeFollowerStatus();
-    const SideSensorStatus sideStatus = getSideSensorStatus();
+    const UART::Data sensorData = UART::getData();
+    const UART::PoseData poseData = UART::getPoseData();
+
+    const TapeFollowerStatus tapeStatus =
+        getTapeFollowerStatus();
+
+    const SideSensorStatus sideStatus =
+        getSideSensorStatus();
+
     StateMachine::Inputs inputs;
 
-    /*bool wifiRequested = (sensorData.mask & 0x04) != 0;
-    if (wifiRequested){*/
-        wifi.update();
-    //}
-    const UART::MetalData metal0 = UART::getMetalData(0);
-    const UART::MetalData metal1 = UART::getMetalData(1);
-    
+    wifi.update();
+
+    const UART::MetalData metal0 =
+        UART::getMetalData(0);
+
+    const UART::MetalData metal1 =
+        UART::getMetalData(1);
+
+
     inputs.metalMagnitude0 =
         metal0.valid
             ? static_cast<uint16_t>(
@@ -62,7 +70,7 @@ void loop()
                     0.0f,
                     65535.0f))
             : 0;
-    
+
     inputs.metalMagnitude1 =
         metal1.valid
             ? static_cast<uint16_t>(
@@ -72,13 +80,37 @@ void loop()
                     65535.0f))
             : 0;
 
-    inputs.mag1 = sensorData.valid ? sensorData.mag1 : 0;
-    inputs.mag2 = sensorData.valid ? sensorData.mag2 : 0;
 
-    inputs.sideTapeDetected = checkForSideTape();
+    inputs.mag1 =
+        sensorData.valid
+            ? sensorData.mag1
+            : 0;
+
+    inputs.mag2 =
+        sensorData.valid
+            ? sensorData.mag2
+            : 0;
+
+
+    inputs.sideTapeDetected =
+        sideStatus.onTape;
+
     inputs.returnTapeDetected = false;
 
+
+    // Pose data is now available here
+    if (poseData.valid)
+    {
+        // poseData.x
+        // poseData.y
+        // poseData.theta
+        // poseData.vx
+        // poseData.vy
+        // poseData.omega
+    }
+
+
     StateMachine::update(inputs);
+
     delay(5);
-    
 }
