@@ -114,7 +114,6 @@ enum class IRAlignState
     ALIGN_ROBOT, 
     FINISHED,
     NOT_FOUND
-
 };
 
 
@@ -393,11 +392,130 @@ static bool hasPeakPassed() {
 }
 
 
+//state switching 
+static void changeState(IRAlignState newState) {
+
+    currentState = newState; 
+    stateStartTime = millis();
+    
+    switch (currentState)
+    {
+        case IRAlignState::IDLE: {
+            break;
+        }
+        
+        case IRAlignState::SEARCH_FOR_PEAK: {
+            drive.forward(FORWARD_SCAN_SPEED);
+            if (hasPeakPassed) {
+                currentState = IRAlignState::RETURN_TO_PEAK; 
+                break; 
+            }
+        }
+
+        case IRAlignState::RETURN_TO_PEAK: {
+            //gotta drive until we satisfy dxToMax and dyToMax, then break
+        }
+        case IRAlignState::FINISHED:
+        case IRAlignState::NOT_FOUND: {
+            drive.stop();
+            break;
+        }
+
+    }
+
+}
 
 
 
+//one-time startup upon booting 
+void begin() {
+    currentState = IRAlignState::IDLE;
+    stateStartTime = 0;
+    resetDetectionFilter();
+    resetPeakTracking();
+    drive.stop();
+}
+
+//trigger an IRAligning attempt. NOTE: this is called in the upper-level state machine ONCE A VALID PEAK HAS BEEN DETECTED.  
+void start() {
+    currentState = IRAlignState::SEARCH_FOR_PEAK; 
+}
 
 
+void update() {
+
+}
+
+
+void stop() {
+
+}
+
+
+
+//status functions 
+bool isFinished()
+{
+    return
+        currentState ==
+        IRAlignState::FINISHED;
+}
+
+
+bool hasFailed()
+{
+    return
+        currentState ==
+        IRAlignState::NOT_FOUND;
+}
+
+
+bool isDone()
+{
+    return
+        isFinished() ||
+        hasFailed();
+}
+
+
+//state names 
+const char* getStateName() {
+        switch (currentState)
+    {
+        case IRAlignState::IDLE:
+            return "Idle";
+
+        case IRAlignState::SEARCH_FOR_PEAK: 
+            return "Searching for peak signal"; 
+        
+        case IRAlignState::ALIGN_ROBOT: 
+            return "Aligning the robot to the solar panels"; 
+
+        case IRAlignState::RETURN_TO_PEAK:
+            return "Return to Peak";
+
+        case IRAlignState::FINISHED:
+            return "IR Aligned";
+
+        case IRAlignState::NOT_FOUND:
+            return "IR Peak Not Found";
+    }
+
+    return "Unknown";
+}
+
+
+// for the UI 
+uint16_t getCurrentMagnitude()
+{
+    return getFilteredMagnitude();
+}
+
+
+uint16_t getMaximumMagnitude()
+{
+    return maximumMagnitude;
+}
 
 
 
