@@ -160,11 +160,13 @@ void MecanumDrive::leftWheelsForward(int speed)
 }
 
 void MecanumDrive::driveTo(float dx, float dy, int speed) {
+  // Known-rest starting condition before the ramp below takes over.
+  stop();
+
   UART::update();
   const UART::FlowPose start = UART::getFlowPose();
 
   if (!start.valid) {
-    stop();
     return;
   }
 
