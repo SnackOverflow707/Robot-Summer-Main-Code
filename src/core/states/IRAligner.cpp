@@ -106,28 +106,19 @@ static constexpr bool USE_MAG2 = true;
 // Internal states
 // --------------------------------------------------
 
-enum class AlignState
+enum class IRAlignState
 {
     IDLE,
-
-    STRAFE_RIGHT,
-
-    // Move to one side of the directional peak.
-    SEARCH_BACKWARD,
-
-    // Slowly sweep across the peak.
-    SEARCH_FORWARD,
-
-    // We passed the peak, so reverse approximately
-    // back to where the maximum occurred.
+    SEARCH_FOR_PEAK, 
     RETURN_TO_PEAK,
-
+    ALIGN_ROBOT, 
     FINISHED,
     NOT_FOUND
+
 };
 
 
-static AlignState currentState = AlignState::IDLE;
+static IRAlignState currentState = IRAlignState::IDLE;
 
 static unsigned long stateStartTime = 0;
 
@@ -184,6 +175,14 @@ static bool uartDataIsFresh()
     }
 
     return millis() - data.lastUpdateMs <= UART_TIMEOUT_MS;
+}
+
+//checks if the incoming data from the Flow Sensor is valid. 
+/*NOTE: we decided as a team to assume that the data is always fresh (aka updated very frequently) so we don't
+check for freshness.*/
+static bool isFlowSensorDataValid() {
+    const UART::FlowPose& flowData = UART::getFlowPose();
+    return (flowData.valid); 
 }
 
 
@@ -257,9 +256,160 @@ static uint16_t getFilteredMagnitude()
 }
 
 
+
+/* GOAL FOR SENSOR INTEGRATION: 
+- Instead of using time passed since peak detection to backtrack, record distance instead
+- then drive the robot back to the location where the peak was detected 
+
+Functions/states needed: 
+- STATE: searchForPeak
+- STATE: peakFound 
+    - FUNCTION: tracks the distance passed since peak detection and the actual physical location of the beacon, 
+    based on the robot's speed 
+- STATE: driveBackToPeak 
+- STATE: alignRobot (get to a consistent position: eg. rotate so parallel to panels so the arm knows where to go) 
+
+we also need the general switch state function that tells the robot which state to switch to after certain events. 
+
+*/
+
+/*in general begin state: 
+- initialize the filter
+- reset max peak magnitude detected to 0 */
+
+/*In general loop state:
+- update the filter */
+
+/*in searchForPeak:
+- feed filter new data  
+- capture current distance
+- analyze the filter's output against running maximums 
+    - if it's a new maximum, record it & the robot's location atp
+- analyze the filter's output against the falling threshold 
+    - if it's below threshold, it means the peak as passed --> trigger the peakFound state 
+*/
+
+//static float peakForwardDistance = 0.0f; //meters
+//static float overshootDistance  = 0.0f; //meters
+
+//static constexpr float MAX_RETURN_DISTANCE = 0.30f;  // safety cap
+//static constexpr float RETURN_STOP_EPSILON = 0.01f;  // 1cm tolerance
+
+static float xCurrent = 0.0f; 
+static float yCurrent = 0.0f; 
+static float xOfMax = 0.0f; 
+static float yOfMax = 0.0f; 
+static float dxToPeak = 0.0f; 
+static float dyToPeak = 0.0f; 
+
+//searchForPeak functions 
+
+static void resetPeakTracking() {
+    maximumMagnitude = 0;
+    fallingSampleCount = 0;
+    validPeakSeen = false;
+    dxToPeak = 0.0f;
+    
+    //peakForwardDistance = 0.0f;
+    //overshootDistance = 0.0f;
+}
+
+
+//ONLY RETURNS TRUE WHEN A PEAK IS DETECTED AND THE ROBOT NEEDS TO DRIVE BACK. 
+static bool hasPeakPassed() {
+
+    //calculate falling threshold based on running max mag 
+    const float fallingThreshold = static_cast<float>(maximumMagnitude) * PEAK_DROP_RATIO;
+
+    //check filter initialization 
+    if (!filterInitialized) {
+        fallingSampleCount = 0;
+        return false;
+    }
+
+    //get new data from UART & integrate data to filter 
+    const uint16_t magnitude = getFilteredMagnitude();
+    const UART::Data& data = UART::getData();
+
+    //check if UART data is valid and record current position if so. 
+    const UART::FlowPose& flowData = UART::getFlowPose();
+    if (!isFlowSensorDataValid()) {
+        return false; 
+    }
+    xCurrent = flowData.x; 
+    yCurrent = flowData.y; 
+
+    //check if current magnitude is a maximum. 
+    //if maximum, store it and store the x/y coords
+    if (magnitude > maximumMagnitude) {
+
+        maximumMagnitude = magnitude; 
+
+        if (!(maximumMagnitude >= getMinimumValidPeak())) {
+            validPeakSeen = false; 
+            return false; 
+        }
+
+        validPeakSeen = true;
+        xOfMax = xCurrent; 
+        yOfMax = yCurrent; 
+        fallingSampleCount = 0;
+        return false; //updated the max only, not necessarily a peak yet. 
+    }
+
+    //else, check if signal has passed below threshold 
+    else {
+        
+        if (magnitude < fallingThreshold) {
+            
+            //first check if a peak has been seen
+            if (!validPeakSeen) {
+                fallingSampleCount = 0;
+                return false;
+            }
+
+            //check if required number of falling samples has been met
+            if (fallingSampleCount < REQUIRED_FALLING_SAMPLES) {
+                fallingSampleCount++;
+            }
+        }
+
+        else {
+            fallingSampleCount = 0;
+        }
+
+        //if samples has been met, save relevant data 
+        if (fallingSampleCount >= REQUIRED_FALLING_SAMPLES) {
+            dxToPeak = xCurrent - xOfMax; 
+            dyToPeak = yCurrent - yOfMax; 
+            return true; 
+        }
+        //else continue search 
+        return false; 
+    }
+
+    return false; 
+
+}
+
+
+
+
+
+
+
+
+
+
+
+/* 
+-----------------------------------------------------------------------------------------------------
+OLD CODE 
+
 // --------------------------------------------------
 // Peak tracking
 // --------------------------------------------------
+
 
 static void resetPeakTracking()
 {
@@ -725,5 +875,6 @@ const char* getStateName()
 
     return "Unknown";
 }
+*/
 
 } // namespace IRAligner
