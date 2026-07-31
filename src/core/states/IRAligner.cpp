@@ -394,9 +394,12 @@ static bool hasPeakPassed() {
 void alignRobot() {
     //will need to calibrate stuff based off where the robot stops after RETURN_TO_PEAK;
     //can't assume it's perfectly in front of the beacon. Just measure or something. 
-
     //will also need to calibrate the degrees for rotation; figure out what orientation 
     //the panels are in the sensors' world. 
+
+    /*
+    code will probably look like: 
+    drive.driveTo(coordX, coordY, )*/
 
 }
 

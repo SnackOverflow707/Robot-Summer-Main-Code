@@ -555,7 +555,7 @@ void update(const Inputs& inputs)
 
         case State::SLOW_TAPE_FOLLOWING:
             tapeFollowStep();
-            IRAligner::update();
+            //IRAligner::update();
 
             if (irDetected && irTriggerArmed)
             {
