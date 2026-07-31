@@ -17,6 +17,14 @@ static const ArmPose REACH_TOWER_3 = {176, 205, 158, 13, 35};
 static const ArmPose GRAB_TOWER_3 = {176, 205, 158, 13, TOWER_CLAW_CLOSED}; 
 
 
+const char* moveToPieceOrder[] = {
+    "base", 
+    "claw",
+    "wrist", 
+    "elbow", 
+    "shoulder"
+};
+
 const char* pickupOrder[] = {
     "claw", 
     "shoulder",
@@ -69,9 +77,9 @@ void towerSequence(TaskManager& taskManager) {
 
     for (int step = 0; step < 2*TOWERS_TO_ATTEMPT; step+=2) {
 
-        taskManager.executeMove(ALL_TOWERS[step], pickupOrder); //reach the tower
+        taskManager.executeMove(ALL_TOWERS[step], moveToPieceOrder); //reach the tower
         delay(250); 
-        taskManager.executeMove(ALL_TOWERS[step+1]); //grab the tower
+        taskManager.executeMove(ALL_TOWERS[step+1], pickupOrder); //grab the tower
         delay(500); 
 
         if (step == 0) {
@@ -80,7 +88,7 @@ void towerSequence(TaskManager& taskManager) {
 
         taskManager.executeMove(FUNNEL1, funnelOrder);
         delay(100); 
-        taskManager.executeMove(FUNNEL2);
+        taskManager.executeMove(FUNNEL2, funnelOrder);
         delay(250); 
         taskManager.executeMove(DROP_TOWER); 
         delay(100); 
