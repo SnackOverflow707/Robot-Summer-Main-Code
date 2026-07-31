@@ -11,10 +11,10 @@
 static const ArmPose REACH_TOWER_1 = {155, 178, 225, 50, 35}; 
 static const ArmPose GRAB_TOWER_1 = {155, 178, 225, 50, TOWER_CLAW_CLOSED}; 
 static const ArmPose LIFT_TOWER_1 = {155, 180, 183, 15, TOWER_CLAW_CLOSED}; 
-static const ArmPose REACH_TOWER_2 = {160, 192, 184, 10, 35}; 
-static const ArmPose GRAB_TOWER_2 = {160, 192, 184, 10, TOWER_CLAW_CLOSED}; 
-static const ArmPose REACH_TOWER_3 = {177, 203, 164, 27, 35}; 
-static const ArmPose GRAB_TOWER_3 = {177, 203, 164, 27, TOWER_CLAW_CLOSED}; 
+static const ArmPose REACH_TOWER_2 = {161, 194, 184, 13, 35}; 
+static const ArmPose GRAB_TOWER_2 = {161, 194, 184, 13, TOWER_CLAW_CLOSED}; 
+static const ArmPose REACH_TOWER_3 = {176, 205, 158, 13, 35}; 
+static const ArmPose GRAB_TOWER_3 = {176, 205, 158, 13, TOWER_CLAW_CLOSED}; 
 
 
 const char* pickupOrder[] = {
