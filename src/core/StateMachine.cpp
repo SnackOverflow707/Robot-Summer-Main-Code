@@ -21,7 +21,7 @@
 // Each mechanism should expose the functions used below.
 
 #include "core/states/RockGrabber.h"
-#include "core/states/TowerPieceGrabber.h"
+//#include "core/states/TowerPieceGrabber.h"
 #include "core/states/TowerRam.h"
 #include "core/states/TowerBuilder.h"
 #include "core/states/TapeReturn.h"
@@ -400,7 +400,7 @@ void update(const Inputs& inputs)
             tapeFollowStep();
 
             {
-                auto pose = UART::getFlowPose();
+                auto pose = UART::getPoseData();
                 for (uint8_t i = rockIndex ; i < NUM_ROCKS ; i ++) {
                     float dx = pose.x - RockApproach::ROCK_POSITIONS[i].x;
                     float dy = pose.y - RockApproach::ROCK_POSITIONS[i].y;
@@ -497,34 +497,34 @@ void update(const Inputs& inputs)
 
 
             case State::TAPE_FOLLOW_TO_TOWER:
-            {
-                const SideSensorStatus sideStatus = getSideSensorStatus();
-            
-                // Sensor has returned to white, so allow another sighting.
-                if (!sideStatus.onTape)
                 {
-                    sideTapeArmed = true;
-                }
-            
-                // Count only when we hit tape while armed.
-                if (sideStatus.onTape && sideTapeArmed)
-                {
-                    sideTapeArmed = false;
-                    sideTapeSightings++;
-            
-                    if (sideTapeSightings >= 2)
+                    const SideSensorStatus sideStatus = getSideSensorStatus();
+                
+                    // Sensor has returned to white, so allow another sighting.
+                    if (!sideStatus.onTape)
                     {
-                        sideTapeSightings = 0;
                         sideTapeArmed = true;
-            
-                        changeState(State::TOWER_RAM);
-                        break;
                     }
+                
+                    // Count only when we hit tape while armed.
+                    if (sideStatus.onTape && sideTapeArmed)
+                    {
+                        sideTapeArmed = false;
+                        sideTapeSightings++;
+                
+                        if (sideTapeSightings >= 2)
+                        {
+                            sideTapeSightings = 0;
+                            sideTapeArmed = true;
+                
+                            changeState(State::TOWER_RAM);
+                            break;
+                        }
+                    }
+                
+                    tapeFollowStep();
+                    break;
                 }
-            
-                tapeFollowStep();
-                break;
-            }
     
 
         case State::TOWER_RAM:

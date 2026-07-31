@@ -11,10 +11,14 @@ namespace RockApproach
 
     constexpr RockPos ROCK_POSITIONS[6] = {
         //UPDATE WITH REAL POSES!!
-        {1.0f, 2.0f, 0}, 
+        // 0 -> left coil
+        // 1 -> right coil
+        // (AS VIEWED FROM THE REAR)
+        
+        {1.0f, 2.0f, 1}, 
         {1.0f, 2.0f, 0},
-        {1.0f, 2.0f, 0},
-        {1.0f, 2.0f, 0},
+        {1.0f, 2.0f, 1},
+        {1.0f, 2.0f, 1},
         {1.0f, 2.0f, 0},
         {1.0f, 2.0f, 0},
     };
@@ -35,7 +39,7 @@ namespace RockApproach
     };
 
     #define STRAFE_SPEED 150
-    #define POSITION_TOLERANCE 0.02f
+    #define POSITION_TOLERANCE 2.0f //cm
 
     // States
     enum class Phase {
@@ -49,8 +53,8 @@ namespace RockApproach
     static Phase s_phase = Phase::DONE;
     static uint8_t s_rockIndex = 0;
 
-    static float getPoseX() {return UART::getFlowPose().x; }
-    static float getPoseY() {return UART::getFlowPose().y; }
+    static float getPoseX() { return UART::getPoseData().x; }
+    static float getPoseY() { return UART::getPoseData().y; }
 
     static float distance(float x1, float y1, float x2, float y2) {
         float dx = x2 - x1;
@@ -74,25 +78,25 @@ namespace RockApproach
     float py = getPoseY();
 
     const ScanPos& scan = SCAN_POSITIONS[s_rockIndex];
-    const RockPos& rock = ROCK_POSITIONS[s_rockIndex];
+    const RockPos& rp = ROCK_POSITIONS[s_rockIndex];
 
     switch (s_phase) {
 
         case Phase::STRAFE_TO_SCAN: {
             float d = distance(px, py, scan.x, scan.y);
 
+            // stops when POSITION_TOLERANCE cm from rock
             if (d < POSITION_TOLERANCE) {
                 drive.stop();
                 s_phase = Phase::METAL_CHECK;
                 break;
             }
 
-            // strafe left or right based on which direction scan position is
-            if (scan.y > py)
+            if (rp.coil == 0) 
                 drive.strafeLeft(STRAFE_SPEED);
             else
                 drive.strafeRight(STRAFE_SPEED);
-
+            
             break;
         }
 

@@ -67,6 +67,22 @@ static PoseData latestPoseData =
     .valid = false
 };
 
+// One entry for detector 0 and one for detector 1.
+static MetalData latestMetalData[METAL_DETECTOR_COUNT] =
+{
+    {
+        .frequencyHz = 0.0f,
+        .frameCount = 0,
+        .lastUpdateMs = 0,
+        .valid = false
+    },
+    {
+        .frequencyHz = 0.0f,
+        .frameCount = 0,
+        .lastUpdateMs = 0,
+        .valid = false
+    }
+};
 
 // --------------------------------------------------
 // Parser helpers
@@ -139,6 +155,8 @@ static void processMetalFrame()
     {
         return;
     }
+
+    float frequencyHz = 0.0f;
 
     memcpy(
         &frequencyHz,
@@ -364,9 +382,15 @@ static void processPoseFrame()
     latestPoseData.lastUpdateMs = millis();
     latestPoseData.valid = true;
 }
+
 PoseData getPoseData()
 {
-    return latestPoseData;
+    PoseData result = latestPoseData;
+    result.x -= s_poseOffset.x;
+    result.y -= s_poseOffset.y;
+    result.theta -= s_poseOffset.theta;
+
+    return result;
 }
 
 void resetFlowPose() {
@@ -374,14 +398,6 @@ void resetFlowPose() {
     s_poseOffset.x     = p.x;
     s_poseOffset.y     = p.y;
     s_poseOffset.theta = p.theta;
-}
-
-PoseData getPoseData() {
-    PoseData result = s_latestPose;  // whatever your latest pose variable is called
-    result.x     -= s_poseOffset.x;
-    result.y     -= s_poseOffset.y;
-    result.theta -= s_poseOffset.theta;
-    return result;
 }
 
 } // namespace UART
