@@ -12,6 +12,10 @@ namespace StateMachine
 enum class State
 {
     TAPE_FOLLOW_ROCK_CHECK,
+
+    ROCK_APPROACH, //approaches rock when reached the appropriate pose
+
+
     ROCK_METAL_CHECK,
     ROCK_GRAB,
     TAPE_FOLLOW_TO_TOWER,

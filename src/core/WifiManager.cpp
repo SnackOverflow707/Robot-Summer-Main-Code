@@ -647,6 +647,12 @@ json += poseData.valid
         _server.send(200, "text/plain", "Printed to Serial.");
     });
 
+    _server.on("/resetPose", HTTP_GET, [this]() 
+    {
+        UART::resetFlowPose();
+        _server.send(200, "text/plain", "Pose reset to zero");
+    });
+
 
 
 
@@ -996,6 +1002,10 @@ void WifiManager::showControlPage()
 
     <button onclick="sendCommand('/stopTape')">
         Stop Tape Following
+    </button>
+
+    <button onclick="fetch('/resetPose').then(() => alert('Pose zeroed!'))">
+        Zero Pose
     </button>
 </div>
 <div class="panel">

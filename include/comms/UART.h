@@ -41,6 +41,7 @@ struct PoseData
 };
 
 PoseData getPoseData();
+void resetFlowPose();
 
 
 
@@ -58,5 +59,6 @@ bool isMag2Selected();
 uint16_t getSelectedMagnitude();
 uint8_t getSelectedFrequency();
 bool isSelectedDetected();
+
 
 } // namespace UART

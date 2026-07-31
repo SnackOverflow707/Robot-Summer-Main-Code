@@ -24,6 +24,9 @@ static HardwareSerial uart(UART_NUMBER);
 
 static uint8_t payload[MAX_PAYLOAD];
 
+static PoseData s_poseOffset = {0,0,0,0,0,0,0,0,false};
+
+
 enum FrameState
 {
     WAIT_SYNC,
@@ -64,26 +67,11 @@ static PoseData latestPoseData =
     .valid = false
 };
 
-// One entry for detector 0 and one for detector 1.
-static MetalData latestMetalData[METAL_DETECTOR_COUNT] =
-{
-    {
-        .frequencyHz = 0.0f,
-        .frameCount = 0,
-        .lastUpdateMs = 0,
-        .valid = false
-    },
-    {
-        .frequencyHz = 0.0f,
-        .frameCount = 0,
-        .lastUpdateMs = 0,
-        .valid = false
-    }
-};
 
 // --------------------------------------------------
 // Parser helpers
 // --------------------------------------------------
+
 
 static void resetParser()
 {
@@ -98,6 +86,7 @@ static uint8_t calculateChecksum()
 {
     uint8_t checksum = 0;
 
+    // This must match the checksum used by sendFrame().
     checksum ^= frameType;
     checksum ^= payloadLength;
 
@@ -150,8 +139,6 @@ static void processMetalFrame()
     {
         return;
     }
-
-    float frequencyHz = 0.0f;
 
     memcpy(
         &frequencyHz,
@@ -310,7 +297,7 @@ Data getData()
 MetalData getMetalData(uint8_t detectorId)
 {
     if (detectorId >= METAL_DETECTOR_COUNT)
-    {
+{
         return MetalData
         {
             .frequencyHz = 0.0f,
@@ -380,6 +367,21 @@ static void processPoseFrame()
 PoseData getPoseData()
 {
     return latestPoseData;
+}
+
+void resetFlowPose() {
+    auto p = getPoseData();
+    s_poseOffset.x     = p.x;
+    s_poseOffset.y     = p.y;
+    s_poseOffset.theta = p.theta;
+}
+
+PoseData getPoseData() {
+    PoseData result = s_latestPose;  // whatever your latest pose variable is called
+    result.x     -= s_poseOffset.x;
+    result.y     -= s_poseOffset.y;
+    result.theta -= s_poseOffset.theta;
+    return result;
 }
 
 } // namespace UART

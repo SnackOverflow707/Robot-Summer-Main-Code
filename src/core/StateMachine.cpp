@@ -1,9 +1,11 @@
 #include "core/StateMachine.h"
+#include "comms/UART.h"
 
 #include "tape_logic/TapeFollower.h"
 #include "tape_logic/SideSensors.h"
 #include "actuators/MecanumDrive.h"
 #include "tape_logic/SideSensors.h"
+#include "core/states/RockApproach.h"
 
 
 // Expected mechanism files:
@@ -148,6 +150,7 @@ const char* getStateId()
 
 static void stopAllMechanisms()
 {
+    RockApproach::stop();
     RockGrabber::stop();
     TapeReturn::stop();
     TowerBuilder::stop();
@@ -184,6 +187,11 @@ static void changeState(State newState)
             resetTapePID();
             setTapeBaseSpeed(100);
             setTapeFollowing(true);
+            break;
+
+        case State::ROCK_APPROACH:
+            RockApproach::begin();
+            RockApproach::start(rockIndex);
             break;
 
         case State::ROCK_METAL_CHECK:
@@ -371,16 +379,50 @@ void update(const Inputs& inputs)
 
     switch (currentState)
     {
+        /*BELOW is commented out code which would work if the metal detectors
+        had appropriate range.
+        
+        Because they don't, we are changing the logic so that the robot strafes right or left
+        to each rock as it tape follows to check if they contain metal*/
+        // case State::TAPE_FOLLOW_ROCK_CHECK:
+        //     tapeFollowStep();
+
+        //     if (metalDetected && metalTriggerArmed)
+        //     {
+        //         metalTriggerArmed = false;
+        //         changeState(State::ROCK_METAL_CHECK);
+        //         break;
+        //     }
+        //     break;
+            
+        //NEW LOGIC
         case State::TAPE_FOLLOW_ROCK_CHECK:
             tapeFollowStep();
 
-            if (metalDetected && metalTriggerArmed)
             {
-                metalTriggerArmed = false;
-                changeState(State::ROCK_METAL_CHECK);
-                break;
+                auto pose = UART::getFlowPose();
+                for (uint8_t i = rockIndex ; i < NUM_ROCKS ; i ++) {
+                    float dx = pose.x - RockApproach::ROCK_POSITIONS[i].x;
+                    float dy = pose.y - RockApproach::ROCK_POSITIONS[i].y;
+                    float d = sqrtf(dx*dx + dy*dy);
+                    if (d < 0.10f) { // if less than 10 cm from rock
+                        rockIndex = i;
+                        changeState(State::ROCK_APPROACH);
+                        break;
+                    }
+                }
             }
             break;
+
+        case State::ROCK_APPROACH:
+            RockApproach::update();
+            if (RockApproach::isFinished()) {
+                changeState(State::ROCK_METAL_CHECK);
+            } else if (RockApproach::hasFailed()) {
+                changeState(State::TAPE_FOLLOW_ROCK_CHECK);
+            }
+            break;
+
 
         case State::ROCK_METAL_CHECK:
         {
@@ -396,6 +438,29 @@ void update(const Inputs& inputs)
                 const float hitRatio =
                     static_cast<float>(metalCheckHitCount) /
                     static_cast<float>(metalCheckSampleCount);
+
+                // strafe back to tape regardless of metal result
+                const RockApproach::RockPos& rp =
+                    RockApproach::ROCK_POSITIONS[rockIndex];
+
+                // strafe opposite direction until tape found
+                bool onTape = false;
+                unsigned long returnStart = millis();
+                while (!onTape && millis() - returnStart < 3000) {
+                    UART::update();
+                    updateTapeSensors();
+
+                    TapeFollowerStatus status = getTapeFollowerStatus();
+                    onTape = status.leftWhite || status.rightWhite;
+
+                    if (!onTape) {
+                        if (rp.coil == 0)
+                            drive.strafeRight(150);  // left coil → came from right → strafe right back
+                        else
+                            drive.strafeLeft(150);   // right coil → came from left → strafe left back
+                    }
+                }
+                drive.stop();
 
                 if (hitRatio >= METAL_CHECK_CONFIRM_RATIO)
                 {
