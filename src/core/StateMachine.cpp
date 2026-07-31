@@ -4,7 +4,6 @@
 #include "tape_logic/TapeFollower.h"
 #include "tape_logic/SideSensors.h"
 #include "actuators/MecanumDrive.h"
-#include "tape_logic/SideSensors.h"
 #include "core/states/RockApproach.h"
 
 
@@ -157,7 +156,6 @@ static void stopAllMechanisms()
     SolarPanelRipper::stop();
     IRAligner::stop();
     TowerRam::stop();
-    IRAligner::stop();
 }
 
 static void stopCurrentOutputs()
