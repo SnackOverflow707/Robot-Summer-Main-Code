@@ -19,7 +19,6 @@ static const ArmPose GRAB_TOWER_3 = {177, 203, 164, 27, TOWER_CLAW_CLOSED};
 
 const char* pickupOrder[] = {
     "claw", 
-    "base",
     "shoulder",
     "elbow", 
     "wrist"
