@@ -647,10 +647,32 @@ json += poseData.valid
         _server.send(200, "text/plain", "Printed to Serial.");
     });
 
+    // POSITION STUFF 
     _server.on("/resetPose", HTTP_GET, [this]() 
     {
         UART::resetFlowPose();
         _server.send(200, "text/plain", "Pose reset to zero");
+    });
+
+        // GET /savePose?slot=0 → save current pose to a named slot
+    _server.on("/savePose", HTTP_GET, [this]()
+    {
+        const String label = _server.hasArg("slot")
+            ? _server.arg("slot")
+            : "POSE";
+
+        const UART::PoseData pose = UART::getPoseData();
+
+        Serial.printf("=== SAVED POSE: %s ===\n", label.c_str());
+        Serial.printf("{ %.4ff, %.4ff }  // x, y\n", pose.x, pose.y);
+
+        String response =
+            "{ " + String(pose.x, 4) + "f, " +
+            String(pose.y, 4) + "f }  // x=" +
+            String(pose.x, 4) + " y=" +
+            String(pose.y, 4);
+
+        _server.send(200, "text/plain", response);
     });
 
 
@@ -1314,7 +1336,24 @@ void WifiManager::showControlPage()
         Status:
         <span id="poseStatus" class="value">Waiting...</span>
     </p>
+
+    <h3>Save Pose</h3>
+    <p style="font-size:13px;color:#666;margin-bottom:12px;">
+        Drive robot to position, enter a label, then click Save.
+        Values are printed to Serial and logged below.
+    </p>
+    <div>
+        <input type="text" id="poseName" placeholder="e.g. ROCK_0" style="width:160px"/>
+        <button class="green" onclick="savePose()">Save Pose</button>
+        <button onclick="clearPoseLog()">Clear</button>
+    </div>
+    <div style="margin-top:12px;">
+        <div id="pose-log" style="background:#1e293b;color:#7dd3fc;font-family:'Courier New',monospace;font-size:12px;padding:10px;border-radius:6px;min-height:60px;white-space:pre;overflow-x:auto;">
+// saved poses will appear here
+        </div>
+    </div>
 </div>
+
 <div class="panel">
     <h2>Metal Detectors</h2>
 
@@ -1819,7 +1858,23 @@ async function updatePID()
 }
 
 
+async function savePose() {
+    const name = document.getElementById("poseName").value.trim() || "POSE";
+    try {
+        const r = await fetch("/savePose?slot=" + encodeURIComponent(name));
+        const t = await r.text();
+        const log = document.getElementById("pose-log");
+        if (log.textContent.trim() === "// saved poses will appear here")
+            log.textContent = "";
+        log.textContent += "// " + name + "\n" + t + "\n\n";
+    } catch (e) {
+        document.getElementById("pose-log").textContent += "// ERROR: " + e.message + "\n";
+    }
+}
 
+function clearPoseLog() {
+    document.getElementById("pose-log").textContent = "// saved poses will appear here";
+}
 
 
 
