@@ -28,10 +28,10 @@ static unsigned long stateStartTime = 0;
 // --------------------------------------------------
 
 static constexpr int STRAFE_SPEED = 120;
-static constexpr int ROTATE_SPEED = 120;
+static constexpr int ROTATE_SPEED = 140;
 
 static constexpr unsigned long STRAFE_LEFT_TIME_MS = 2000;
-static constexpr unsigned long ROTATE_TIME_MS = 1000;
+static constexpr unsigned long ROTATE_TIME_MS = 2300;
 
 
 // --------------------------------------------------

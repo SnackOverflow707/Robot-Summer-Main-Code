@@ -70,10 +70,10 @@ static bool enabled = false;
 
 static bool irTriggerArmed = true;
 static bool metalTriggerArmed = true;
-static bool sideTapeTriggerArmed = true;
 static bool returnTapeTriggerArmed = true;
 
-static uint8_t sideTapeTriggerCount = 0;
+static uint8_t sideTapeSightings = 0;
+static bool sideTapeArmed = true;
 
 // Which physical rock (0..NUM_ROCKS-1) we've stopped at. Increments on
 // EVERY stop-and-check, whether or not that rock turns out to have
@@ -243,36 +243,6 @@ static void changeState(State newState)
     }
 }
 
-// --------------------------------------------------
-// Trigger helpers
-// --------------------------------------------------
-
-static bool consumeSideTapeTrigger(bool detected)
-{
-    if (!detected)
-    {
-        sideTapeTriggerArmed = true;
-        return false;
-    }
-
-    if (!sideTapeTriggerArmed)
-    {
-        return false;
-    }
-
-    const unsigned long now = millis();
-
-    if (now - lastSideTapeTriggerTime < SENSOR_DEBOUNCE_MS)
-    {
-        return false;
-    }
-
-    sideTapeTriggerArmed = false;
-    lastSideTapeTriggerTime = now;
-    ++sideTapeTriggerCount;
-
-    return true;
-}
 
 static bool consumeReturnTapeTrigger(bool detected)
 {
@@ -309,12 +279,12 @@ void begin()
     pinMode(SENSOR_SELECT_PIN, INPUT_PULLUP);
 
     enabled = false;
-    sideTapeTriggerCount = 0;
+    sideTapeSightings = 0;
     rockIndex = 0;
 
     irTriggerArmed = true;
     metalTriggerArmed = true;
-    sideTapeTriggerArmed = true;
+    sideTapeArmed = true;
     returnTapeTriggerArmed = true;
 
     changeState(State::STOPPED);
@@ -341,12 +311,12 @@ bool isEnabled()
 
 void restart()
 {
-    sideTapeTriggerCount = 0;
+    sideTapeSightings= 0;
     rockIndex = 0;
 
     irTriggerArmed = true;
     metalTriggerArmed = true;
-    sideTapeTriggerArmed = true;
+    sideTapeArmed = true;
     returnTapeTriggerArmed = true;
 
     if (enabled)
@@ -461,17 +431,35 @@ void update(const Inputs& inputs)
             break;
 
 
-        case State::TAPE_FOLLOW_TO_TOWER:
-            {const SideSensorStatus sideStatus = getSideSensorStatus();
-
-            if (consumeSideTapeTrigger(sideStatus.onTape))
+            case State::TAPE_FOLLOW_TO_TOWER:
             {
-                changeState(State::TOWER_RAM);
+                const SideSensorStatus sideStatus = getSideSensorStatus();
+            
+                // Sensor has returned to white, so allow another sighting.
+                if (!sideStatus.onTape)
+                {
+                    sideTapeArmed = true;
+                }
+            
+                // Count only when we hit tape while armed.
+                if (sideStatus.onTape && sideTapeArmed)
+                {
+                    sideTapeArmed = false;
+                    sideTapeSightings++;
+            
+                    if (sideTapeSightings >= 2)
+                    {
+                        sideTapeSightings = 0;
+                        sideTapeArmed = true;
+            
+                        changeState(State::TOWER_RAM);
+                        break;
+                    }
+                }
+            
+                tapeFollowStep();
                 break;
             }
-    
-            tapeFollowStep();
-            break;}
     
 
         case State::TOWER_RAM:
@@ -605,7 +593,7 @@ unsigned long getStateElapsedMs()
 
 uint8_t getSideTapeTriggerCount()
 {
-    return sideTapeTriggerCount;
+    return sideTapeSightings;
 }
 
 // --------------------------------------------------
