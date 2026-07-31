@@ -4,13 +4,75 @@
 #include "../ArmController2.h"
 #include "../taskManager.h"
 
-#define ROCK_NATTEMPTS 3   // total grip attempts, including the first
+#define CLAW_CLOSED_ROCK 20 //update 
 
-// TODO: tune every angle per joint, per rock, once you're testing on the
-// real field layout. These are placeholders and are almost certainly wrong.
-//
-// One slot per physical rock (6), indexed by stop order along the track -
-// see rockIndex in StateMachine.cpp, which counts every stop (metal or not).
+
+/*I'm rewriting this based on the fact that the chassis should stop with the rock at the same location relative 
+to the arm base each time because we have the positional sensors.*/
+
+const char* rockPositions[] = {
+    "right", "left", "right", "right", "left", "right"
+}; 
+
+const char* rockPickupOrder[] = {
+    "base", "claw", "elbow", "shoulder", "wrist" 
+};
+
+static const ArmPose NEUTRAL = {}; 
+static const ArmPose ROCK_TO_CHASSIS = {}; //brings the rock to the rock mount on the chassis
+static const ArmPose PLACE_ROCK = {}; //places the rock on the mount. 
+
+static const ArmPose REACH_LEFT = {}; 
+static const ArmPose REACH_RIGHT = {}; 
+static const ArmPose GRAB_LEFT = {}; 
+static const ArmPose GRAB_RIGHT = {}; 
+
+struct rockPoses {
+    ArmPose reach; 
+    ArmPose grab; 
+}; 
+
+rockPoses rightRockPoses = {REACH_RIGHT, GRAB_RIGHT}; 
+rockPoses leftRockPoses = {REACH_LEFT, GRAB_LEFT}; 
+
+static const std::vector<ArmPose> PLACE_ROCK_ON_CHASSIS = {
+    ROCK_TO_CHASSIS, 
+    PLACE_ROCK, 
+    NEUTRAL 
+}; 
+
+inline void rockReachSequence(TaskManager& taskManager, int rockIndex)
+{
+    rockPoses rp; 
+    if (rockPositions[rockIndex] == "right") {
+        rp = rightRockPoses; 
+    } 
+    else {
+        rp = leftRockPoses; 
+    }
+
+    taskManager.executeMove(rp.reach, rockPickupOrder); 
+    delay(250); //so position can be confirmed before closing 
+    taskManager.executeMove(rp.grab); 
+    delay(400); //so claw can stabilize around rock 
+
+}
+
+inline void rockGrabSequence(TaskManager& taskManager) {
+    taskManager.executeSequence(PLACE_ROCK_ON_CHASSIS); 
+}
+
+
+
+
+
+
+
+//---------------------- Ken's code -----------------------//
+
+
+/*
+#define ROCK_NATTEMPTS 3   // total grip attempts, including the first
 
 struct RockWaypoints
 {
@@ -19,12 +81,12 @@ struct RockWaypoints
 };
 
 static const RockWaypoints ROCK_POSITIONS[6] = {
-    /* stop 1 */ {{0, 85, 205, 0, false}, {0, 85, 205, 0, true}},
-    /* stop 2 */ {{0, 85, 205, 0, false}, {0, 85, 205, 0, true}},
-    /* stop 3 */ {{0, 85, 205, 0, false}, {0, 85, 205, 0, true}},
-    /* stop 4 */ {{0, 85, 205, 0, false}, {0, 85, 205, 0, true}},
-    /* stop 5 */ {{0, 85, 205, 0, false}, {0, 85, 205, 0, true}},
-    /* stop 6 */ {{0, 85, 205, 0, false}, {0, 85, 205, 0, true}},
+     {{0, 85, 205, 0, CLAW_OPEN}, {0, 85, 205, 0, CLAW_CLOSED_ROCK }},
+    {{0, 85, 205, 0, CLAW_OPEN}, {0, 85, 205, 0, CLAW_CLOSED_ROCK }},
+   {{0, 85, 205, 0, CLAW_OPEN}, {0, 85, 205, 0, CLAW_CLOSED_ROCK }},
+    {{0, 85, 205, 0, CLAW_OPEN}, {0, 85, 205, 0, CLAW_CLOSED_ROCK }},
+    {{0, 85, 205, 0, CLAW_OPEN}, {0, 85, 205, 0, CLAW_CLOSED_ROCK }},
+     {{0, 85, 205, 0, CLAW_OPEN}, {0, 85, 205, 0, CLAW_CLOSED_ROCK }},
 };
 
 // Shared for every rock - once it's out of the ground, lifting and
@@ -48,5 +110,6 @@ inline void rockRetractSequence(TaskManager& taskManager)
     taskManager.executeMove(RETRACT_ROCK);
     taskManager.executeMove(RECENTER_ROCK);
 }
+*/ 
 
 #endif // ROCK_H

@@ -57,8 +57,8 @@ void start(int rockIndex)
     // See TaskManager::executeMove / objectGripCheckSequence.
     rockReachSequence(taskManager, rockIndex);
 
-    // Retries internally (open -> back up -> re-enter -> close) up to
-    // ROCK_NATTEMPTS times before giving up.
+    // DEPRECATED: no microswitch on finger 
+    /*
     const bool gripped =
         taskManager.objectGripCheckSequence(
             ROCK_POSITIONS[rockIndex].grab,
@@ -74,6 +74,7 @@ void start(int rockIndex)
         arm.openClaw();
         currentState = GrabState::FAILED;
     }
+     */
 }
 
 void update()
