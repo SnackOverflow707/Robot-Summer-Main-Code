@@ -8,12 +8,13 @@
 #define TOWER_CLAW_CLOSED 43
 
 //tower positions 
-static const ArmPose REACH_TOWER_1 = {140, 175, 235, 70, 35}; 
-static const ArmPose GRAB_TOWER_1 = {140, 175, 235, 70, TOWER_CLAW_CLOSED}; 
-static const ArmPose REACH_TOWER_2 = {150, 180, 220, 65, 30}; 
-static const ArmPose GRAB_TOWER_2 = {150, 180, 220, 65, TOWER_CLAW_CLOSED}; 
-static const ArmPose REACH_TOWER_3 = {165, 200, 175, 25, 0}; 
-static const ArmPose GRAB_TOWER_3 = {165, 200, 175, 25, TOWER_CLAW_CLOSED}; 
+static const ArmPose REACH_TOWER_1 = {155, 178, 225, 50, 35}; 
+static const ArmPose GRAB_TOWER_1 = {155, 178, 225, 50, TOWER_CLAW_CLOSED}; 
+static const ArmPose LIFT_TOWER_1 = {155, 180, 183, 15, TOWER_CLAW_CLOSED}; 
+static const ArmPose REACH_TOWER_2 = {160, 192, 184, 10, 35}; 
+static const ArmPose GRAB_TOWER_2 = {160, 192, 184, 10, TOWER_CLAW_CLOSED}; 
+static const ArmPose REACH_TOWER_3 = {177, 203, 164, 27, 35}; 
+static const ArmPose GRAB_TOWER_3 = {177, 203, 164, 27, TOWER_CLAW_CLOSED}; 
 
 
 const char* pickupOrder[] = {
@@ -31,6 +32,10 @@ const char* funnelOrder[] = {
     "base", 
     "claw"
 };
+
+const char* liftTower1Order[] {
+    "elbow", "wrist", "base", "shoulder", "claw"
+}; 
 
 //all tower positions 
 //repeat sequence
@@ -52,26 +57,26 @@ static const ArmPose DROP_TOWER = {0, 95, 230, 70, CLAW_OPEN};
 
 //repeat sequence
 static const std::vector<ArmPose> TOWER_DROP_IN_FUNNEL = {
-    //RETRACT,
     FUNNEL1,
     FUNNEL2,
     DROP_TOWER,
-    //ORIENT
+
 };
 
 void towerSequence(TaskManager& taskManager) {
 
     //taskManager.executeMove(ORIENT); 
 
-    for (int step = 0; step < 2*TOWERS_TO_ATTEMPT; step+=2){
+    for (int step = 0; step < 2*TOWERS_TO_ATTEMPT; step+=2) {
+
         taskManager.executeMove(ALL_TOWERS[step], pickupOrder); //reach the tower
         delay(250); 
         taskManager.executeMove(ALL_TOWERS[step+1]); //grab the tower
         delay(500); 
 
-
-        //taskManager.executeSequence(TOWER_DROP_IN_FUNNEL); //bring to funnel & drop it in
-        //delay(100); 
+        if (step == 0) {
+            taskManager.executeMove(LIFT_TOWER_1, liftTower1Order); //first tower needs extra space from metal detector. 
+        }
 
         taskManager.executeMove(FUNNEL1, funnelOrder);
         delay(100); 
