@@ -18,7 +18,7 @@ const char* rockPickupOrder[] = {
     "base", "claw", "elbow", "shoulder", "wrist" 
 };
 
-static const ArmPose NEUTRAL = {}; 
+static const ArmPose NEUTRAL = {HOME_BASE, HOME_SHOULDER, HOME_ELBOW, HOME_WRIST, HOME_CLAW}; 
 static const ArmPose ROCK_TO_CHASSIS = {}; //brings the rock to the rock mount on the chassis
 static const ArmPose PLACE_ROCK = {}; //places the rock on the mount. 
 
