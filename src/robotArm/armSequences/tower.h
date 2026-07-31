@@ -21,7 +21,7 @@ const char* pickupOrder[] = {
     "claw", 
     "base",
     "shoulder",
-    "elbow",
+    "elbow", 
     "wrist"
 };
 
