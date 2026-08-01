@@ -64,6 +64,7 @@ static const ArmPose FUNNEL1 = {0, 95, 210, 70, TOWER_CLAW_CLOSED};
 static const ArmPose FUNNEL2 = {0, 95, 230, 70, TOWER_CLAW_CLOSED}; //version 2: 0, 85, 235, 60, open/closed
 static const ArmPose DROP_TOWER = {0, 95, 230, 70, CLAW_OPEN};  
 
+//static const ArmPose LIFT_TOWER_1 = {155, 180, 183, 15, TOWER_CLAW_CLOSED}; 
 //repeat sequence
 static const std::vector<ArmPose> TOWER_DROP_IN_FUNNEL = {
     FUNNEL1,

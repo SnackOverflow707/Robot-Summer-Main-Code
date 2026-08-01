@@ -204,8 +204,8 @@ void update()
             changeState(SlowTapeFollowState::FINISHED); 
             break; 
 
-        case SlowTapeFollowState::DRIVE_TO_PANELS:
-            changeState()
+        /*case SlowTapeFollowState::DRIVE_TO_PANELS:
+            changeState()*/
     }
 
 
