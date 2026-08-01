@@ -1,3 +1,4 @@
+
 #include "core/states/IRAligner.h"
 
 #include <Arduino.h>
@@ -13,6 +14,11 @@ namespace IRAligner
 // --------------------------------------------------
 // Configuration
 // --------------------------------------------------
+
+// Same selection pin used by StateMachine.cpp.
+// LOW  = use mag1
+// HIGH = use mag2
+static constexpr int SENSOR_SELECT_PIN = 11;
 
 // Initial right strafe
 static constexpr int STRAFE_SPEED = 90;
@@ -33,11 +39,11 @@ static constexpr unsigned long UART_TIMEOUT_MS = 250;
 
 // Final detection thresholds
 static constexpr uint16_t MAG1_FOUND_THRESHOLD = 20000;
-static constexpr uint16_t MAG2_FOUND_THRESHOLD = 2000;
+static constexpr uint16_t MAG2_FOUND_THRESHOLD = 3000;
 
 // Slow down when the signal reaches these values
 static constexpr uint16_t MAG1_NEAR_THRESHOLD = 18000;
-static constexpr uint16_t MAG2_NEAR_THRESHOLD = 1800;
+static constexpr uint16_t MAG2_NEAR_THRESHOLD = 2500;
 
 // Number of consecutive readings needed to confirm detection
 static constexpr uint8_t REQUIRED_FOUND_SAMPLES = 4;
@@ -46,10 +52,6 @@ static constexpr uint8_t REQUIRED_FOUND_SAMPLES = 4;
 // Larger value responds faster but filters less noise.
 // Smaller value filters more but responds more slowly.
 static constexpr float FILTER_ALPHA = 0.25f;
-
-// true  = use mag2
-// false = use mag1
-static constexpr bool USE_MAG2 = true;
 
 // --------------------------------------------------
 // Internal states
@@ -73,31 +75,38 @@ static bool filterInitialized = false;
 
 static uint8_t foundSampleCount = 0;
 
-// Useful for website telemetry/debugging
+// Prevent the same UART frame from being counted multiple times.
+static uint32_t lastProcessedFrameCount = 0;
+static bool newIRSampleAvailable = false;
+
+// Useful for website telemetry/debugging.
 static uint16_t maximumMagnitude = 0;
 
 // --------------------------------------------------
-// IR helpers
+// IR selection helpers
 // --------------------------------------------------
+
+static bool isMag1Selected()
+{
+    return digitalRead(SENSOR_SELECT_PIN) == LOW;
+}
 
 static uint16_t getFoundThreshold()
 {
-    return USE_MAG2
-        ? MAG2_FOUND_THRESHOLD
-        : MAG1_FOUND_THRESHOLD;
+    return isMag1Selected()
+        ? MAG1_FOUND_THRESHOLD
+        : MAG2_FOUND_THRESHOLD;
 }
 
 static uint16_t getNearThreshold()
 {
-    return USE_MAG2
-        ? MAG2_NEAR_THRESHOLD
-        : MAG1_NEAR_THRESHOLD;
+    return isMag1Selected()
+        ? MAG1_NEAR_THRESHOLD
+        : MAG2_NEAR_THRESHOLD;
 }
 
-static bool uartDataIsFresh()
+static bool uartDataIsFresh(const UART::Data& data)
 {
-    const UART::Data& data = UART::getData();
-
     if (!data.valid)
     {
         return false;
@@ -106,29 +115,38 @@ static bool uartDataIsFresh()
     return millis() - data.lastUpdateMs <= UART_TIMEOUT_MS;
 }
 
-static uint16_t getRawIRMagnitude()
+static uint16_t getSelectedMagnitude(
+    const UART::Data& data
+)
 {
-    const UART::Data& data = UART::getData();
-
-    if (!uartDataIsFresh())
-    {
-        return 0;
-    }
-
-    return USE_MAG2 ? data.mag2 : data.mag1;
+    return isMag1Selected()
+        ? data.mag1
+        : data.mag2;
 }
+
+// --------------------------------------------------
+// Detection filter
+// --------------------------------------------------
 
 static void resetDetectionFilter()
 {
     filteredMagnitude = 0.0f;
     filterInitialized = false;
+
     foundSampleCount = 0;
     maximumMagnitude = 0;
+
+    lastProcessedFrameCount = 0;
+    newIRSampleAvailable = false;
 }
 
 static void updateDetectionFilter()
 {
-    if (!uartDataIsFresh())
+    newIRSampleAvailable = false;
+
+    const UART::Data data = UART::getData();
+
+    if (!uartDataIsFresh(data))
     {
         filterInitialized = false;
         filteredMagnitude = 0.0f;
@@ -136,18 +154,32 @@ static void updateDetectionFilter()
         return;
     }
 
-    const uint16_t rawMagnitude = getRawIRMagnitude();
+    // Do not process the same received UART frame repeatedly.
+    if (data.frameCount == lastProcessedFrameCount)
+    {
+        return;
+    }
+
+    lastProcessedFrameCount = data.frameCount;
+    newIRSampleAvailable = true;
+
+    const uint16_t rawMagnitude =
+        getSelectedMagnitude(data);
 
     if (!filterInitialized)
     {
-        filteredMagnitude = static_cast<float>(rawMagnitude);
+        filteredMagnitude =
+            static_cast<float>(rawMagnitude);
+
         filterInitialized = true;
     }
     else
     {
         filteredMagnitude =
-            FILTER_ALPHA * static_cast<float>(rawMagnitude) +
-            (1.0f - FILTER_ALPHA) * filteredMagnitude;
+            FILTER_ALPHA *
+                static_cast<float>(rawMagnitude) +
+            (1.0f - FILTER_ALPHA) *
+                filteredMagnitude;
     }
 
     const uint16_t roundedMagnitude =
@@ -166,7 +198,9 @@ static uint16_t getFilteredMagnitude()
         return 0;
     }
 
-    return static_cast<uint16_t>(filteredMagnitude);
+    return static_cast<uint16_t>(
+        filteredMagnitude
+    );
 }
 
 static bool targetWasFound()
@@ -177,25 +211,41 @@ static bool targetWasFound()
         return false;
     }
 
-    if (getFilteredMagnitude() >= getFoundThreshold())
+    // Only count new UART measurements.
+    if (!newIRSampleAvailable)
     {
-        if (foundSampleCount < REQUIRED_FOUND_SAMPLES)
+        return false;
+    }
+
+    if (
+        getFilteredMagnitude() >=
+        getFoundThreshold()
+    )
+    {
+        if (
+            foundSampleCount <
+            REQUIRED_FOUND_SAMPLES
+        )
         {
             ++foundSampleCount;
         }
     }
     else
     {
-        // Reset if the signal falls back below the threshold.
         foundSampleCount = 0;
     }
 
-    return foundSampleCount >= REQUIRED_FOUND_SAMPLES;
+    return
+        foundSampleCount >=
+        REQUIRED_FOUND_SAMPLES;
 }
 
 static int getSearchSpeed()
 {
-    if (getFilteredMagnitude() >= getNearThreshold())
+    if (
+        getFilteredMagnitude() >=
+        getNearThreshold()
+    )
     {
         return SEARCH_SLOW_SPEED;
     }
@@ -214,7 +264,8 @@ static void changeState(AlignState newState)
     currentState = newState;
     stateStartTime = millis();
 
-    // A detection must be confirmed independently in each state.
+    // Detection must be confirmed independently
+    // in each search state.
     foundSampleCount = 0;
 
     switch (currentState)
@@ -247,6 +298,11 @@ static void changeState(AlignState newState)
 
 void begin()
 {
+    pinMode(
+        SENSOR_SELECT_PIN,
+        INPUT_PULLUP
+    );
+
     currentState = AlignState::IDLE;
     stateStartTime = 0;
 
@@ -257,12 +313,16 @@ void begin()
 void start()
 {
     resetDetectionFilter();
-    changeState(AlignState::STRAFE_RIGHT);
+
+    changeState(
+        AlignState::STRAFE_RIGHT
+    );
 }
 
 void update()
 {
-    // UART::update() must be called regularly in main.cpp.
+    // UART::update() must be called regularly
+    // from main.cpp.
     updateDetectionFilter();
 
     switch (currentState)
@@ -271,26 +331,41 @@ void update()
             break;
 
         case AlignState::STRAFE_RIGHT:
-            if (millis() - stateStartTime >= STRAFE_TIME_MS)
+        {
+            if (
+                millis() - stateStartTime >=
+                STRAFE_TIME_MS
+            )
             {
-                changeState(AlignState::SEARCH_BACKWARD);
+                changeState(
+                    AlignState::SEARCH_BACKWARD
+                );
             }
+
             break;
+        }
 
         case AlignState::SEARCH_BACKWARD:
         {
-            const int speed = getSearchSpeed();
+            const int speed =
+                getSearchSpeed();
+
             drive.backward(speed);
 
             if (targetWasFound())
             {
-                changeState(AlignState::FINISHED);
+                changeState(
+                    AlignState::FINISHED
+                );
             }
             else if (
-                millis() - stateStartTime >= BACKWARD_TIME_MS
+                millis() - stateStartTime >=
+                BACKWARD_TIME_MS
             )
             {
-                changeState(AlignState::SEARCH_FORWARD);
+                changeState(
+                    AlignState::SEARCH_FORWARD
+                );
             }
 
             break;
@@ -298,19 +373,25 @@ void update()
 
         case AlignState::SEARCH_FORWARD:
         {
-            const int speed = getSearchSpeed();
+            const int speed =
+                getSearchSpeed();
+
             drive.forward(speed);
 
             if (targetWasFound())
             {
-                changeState(AlignState::FINISHED);
+                changeState(
+                    AlignState::FINISHED
+                );
             }
             else if (
                 millis() - stateStartTime >=
                 FORWARD_SEARCH_TIME_MS
             )
             {
-                changeState(AlignState::NOT_FOUND);
+                changeState(
+                    AlignState::NOT_FOUND
+                );
             }
 
             break;
@@ -330,12 +411,16 @@ void stop()
 
 bool isFinished()
 {
-    return currentState == AlignState::FINISHED;
+    return
+        currentState ==
+        AlignState::FINISHED;
 }
 
 bool hasFailed()
 {
-    return currentState == AlignState::NOT_FOUND;
+    return
+        currentState ==
+        AlignState::NOT_FOUND;
 }
 
 bool isDone()
@@ -380,3 +465,4 @@ const char* getStateName()
 }
 
 } // namespace IRAligner
+

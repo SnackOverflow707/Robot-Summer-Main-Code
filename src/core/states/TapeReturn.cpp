@@ -30,8 +30,8 @@ static unsigned long stateStartTime = 0;
 static constexpr int STRAFE_SPEED = 120;
 static constexpr int ROTATE_SPEED = 140;
 
-static constexpr unsigned long STRAFE_LEFT_TIME_MS = 2000;
-static constexpr unsigned long ROTATE_TIME_MS = 2300;
+static constexpr unsigned long STRAFE_LEFT_TIME_MS = 3000;
+static constexpr unsigned long ROTATE_TIME_MS = 2000;
 
 
 // --------------------------------------------------
@@ -98,7 +98,7 @@ void update()
 
         case ReturnState::ROTATE_CLOCKWISE:
 
-            drive.rotateCounterClockwise(ROTATE_SPEED);
+            drive.rotateClockwise(ROTATE_SPEED);
 
             if (millis() - stateStartTime >= ROTATE_TIME_MS)
             {
@@ -121,14 +121,14 @@ void update()
 
             // If either front sensor sees tape,
             // we are back at the line.
-            if (tapeStatus.leftWhite || tapeStatus.rightWhite)
+            if (!tapeStatus.leftWhite || !tapeStatus.rightWhite)
             {
                 drive.stop();
                 changeState(ReturnState::FINISHED);
                 break;
             }
 
-            drive.strafeRight(STRAFE_SPEED);
+            drive.strafeLeft(STRAFE_SPEED);
 
             break;
         }

@@ -8,6 +8,7 @@
 #define TOWER_CLAW_CLOSED 43
 
 //tower positions 
+static const ArmPose PRE_TOWER_1 = {135, 140, 225, 50, 35}; 
 static const ArmPose REACH_TOWER_1 = {155, 178, 225, 50, 35}; 
 static const ArmPose GRAB_TOWER_1 = {155, 178, 225, 50, TOWER_CLAW_CLOSED}; 
 static const ArmPose LIFT_TOWER_1 = {155, 180, 183, 15, TOWER_CLAW_CLOSED}; 
@@ -76,7 +77,9 @@ void towerSequence(TaskManager& taskManager) {
     //taskManager.executeMove(ORIENT); 
 
     for (int step = 0; step < 2*TOWERS_TO_ATTEMPT; step+=2) {
-
+        if (step == 0) {
+            taskManager.executeMove(PRE_TOWER_1, pickupOrder); //Stops gettiung caught on the gimble 
+        }
         taskManager.executeMove(ALL_TOWERS[step], moveToPieceOrder); //reach the tower
         delay(250); 
         taskManager.executeMove(ALL_TOWERS[step+1], pickupOrder); //grab the tower

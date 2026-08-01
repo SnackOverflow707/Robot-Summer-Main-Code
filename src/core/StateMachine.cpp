@@ -234,6 +234,7 @@ static void changeState(State newState)
 
         case State::IR_ALIGNING:
 
+            IRAligner::begin();
             IRAligner::start();
             break;
 
