@@ -27,8 +27,8 @@ static constexpr int SENSOR_SELECT_PIN = 11;
 
 // These constants must either be defined here or declared in the header.
 // Replace the placeholder values with your measured distances.
-static constexpr float SOLAR_PANEL_FROM_SIDE_TAPES_DX = 0.0f;
-static constexpr float SOLAR_PANEL_FROM_SIDE_TAPES_DY = 0.0f;
+static constexpr float SOLAR_PANEL_FROM_SIDE_TAPES_DX = 10000.0f;
+static constexpr float SOLAR_PANEL_FROM_SIDE_TAPES_DY = 10000.0f;
 
 static constexpr float SEARCH_THRESHOLD_X = 0.05f;
 static constexpr float SEARCH_THRESHOLD_Y = 0.05f;
@@ -378,23 +378,4 @@ bool isIRDetected(
 // --------------------------------------------------
 // Status
 // --------------------------------------------------
-
-bool isFinished()
-{
-    return currentState ==
-        SlowTapeFollowState::FINISHED;
-}
-
-bool hasFailed()
-{
-    return currentState ==
-        SlowTapeFollowState::FAILED;
-}
-
-bool isDone()
-{
-    return isFinished() || hasFailed();
-}
-
-} // namespace SlowTapeFollowing
-
+ 
