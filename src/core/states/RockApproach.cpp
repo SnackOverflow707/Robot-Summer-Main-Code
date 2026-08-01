@@ -15,12 +15,12 @@ namespace RockApproach
         // 1 -> right coil
         // (AS VIEWED FROM THE REAR)
         
-        {1.0f, 2.0f, 1}, 
-        {1.0f, 2.0f, 0},
-        {1.0f, 2.0f, 1},
-        {1.0f, 2.0f, 1},
-        {1.0f, 2.0f, 0},
-        {1.0f, 2.0f, 0},
+        {96.0217f, -781.6851f, 1}, 
+        {1000.0f, 2000.0f, 0},
+        {1000.0f, 2000.0f, 0},
+        {1000.0f, 2000.0f, 0},
+        {1000.0f, 2000.0f, 0},
+        {1000.0f, 2000.0f, 0}
     };
 
     struct ScanPos {
@@ -30,16 +30,16 @@ namespace RockApproach
 
     static constexpr ScanPos SCAN_POSITIONS[6] = {
         //UPDATE!
-        {1.0f, 2.0f}, 
-        {1.0f, 2.0f}, 
-        {1.0f, 2.0f}, 
-        {1.0f, 2.0f}, 
-        {1.0f, 2.0f}, 
-        {1.0f, 2.0f}, 
+        {193.3023f, -770.2703f}, 
+        {1000.0f, 2000.0f}, 
+        {1000.0f, 2000.0f}, 
+        {1000.0f, 2000.0f}, 
+        {1000.0f, 2000.0f}, 
+        {1000.0f, 2000.0f}, 
     };
 
     #define STRAFE_SPEED 150
-    #define POSITION_TOLERANCE 2.0f //cm
+    #define POSITION_TOLERANCE 80.0f //pixels
 
     // States
     enum class Phase {
@@ -85,7 +85,7 @@ namespace RockApproach
         case Phase::STRAFE_TO_SCAN: {
             float d = distance(px, py, scan.x, scan.y);
 
-            // stops when POSITION_TOLERANCE cm from rock
+            // stops when POSITION_TOLERANCE pixels from rock
             if (d < POSITION_TOLERANCE) {
                 drive.stop();
                 s_phase = Phase::METAL_CHECK;

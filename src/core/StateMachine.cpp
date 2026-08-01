@@ -400,7 +400,7 @@ void update(const Inputs& inputs)
                     float dx = pose.x - RockApproach::ROCK_POSITIONS[i].x;
                     float dy = pose.y - RockApproach::ROCK_POSITIONS[i].y;
                     float d = sqrtf(dx*dx + dy*dy);
-                    if (d < 0.10f) { // if less than 10 cm from rock
+                    if (d < 150.0f) { // if less than 50 pixels from rock
                         rockIndex = i;
                         changeState(State::ROCK_APPROACH);
                         break;
