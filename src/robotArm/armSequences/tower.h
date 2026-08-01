@@ -62,7 +62,7 @@ static const std::vector<ArmPose> ALL_TOWERS = {
 //static const ArmPose RETRACT = {160, 120, 180, 60, TOWER_CLAW_CLOSED}; 
 static const ArmPose FUNNEL1 = {0, 95, 210, 70, TOWER_CLAW_CLOSED}; 
 static const ArmPose FUNNEL2 = {0, 95, 230, 70, TOWER_CLAW_CLOSED}; //version 2: 0, 85, 235, 60, open/closed
-static const ArmPose DROP_TOWER = {0, 95, 230, 70, CLAW_OPEN};  
+static const ArmPose DROP_TOWER = {0, 95, 230, 70, 35};  //save time with 35deg instead of "fully open"
 
 //static const ArmPose LIFT_TOWER_1 = {155, 180, 183, 15, TOWER_CLAW_CLOSED}; 
 //repeat sequence
@@ -75,8 +75,6 @@ static const std::vector<ArmPose> TOWER_DROP_IN_FUNNEL = {
 
 void towerSequence(TaskManager& taskManager) {
 
-    //taskManager.executeMove(ORIENT); 
-
     for (int step = 0; step < 2*TOWERS_TO_ATTEMPT; step+=2) {
         if (step == 0) {
             taskManager.executeMove(PRE_TOWER_1, pickupOrder); //Stops gettiung caught on the gimble 
@@ -84,18 +82,16 @@ void towerSequence(TaskManager& taskManager) {
         taskManager.executeMove(ALL_TOWERS[step], moveToPieceOrder); //reach the tower
         delay(250); 
         taskManager.executeMove(ALL_TOWERS[step+1], pickupOrder); //grab the tower
-        delay(500); 
+        delay(400); 
 
         if (step == 0) {
             taskManager.executeMove(LIFT_TOWER_1, liftTower1Order); //first tower needs extra space from metal detector. 
         }
 
         taskManager.executeMove(FUNNEL1, funnelOrder);
-        delay(100); 
         taskManager.executeMove(FUNNEL2, funnelOrder);
         delay(250); 
         taskManager.executeMove(DROP_TOWER); 
-        delay(100); 
 
     }
 

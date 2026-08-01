@@ -14,6 +14,8 @@ void TaskManager::executeMove(
     const char* jointOrder[]
 )
 {
+    bool elbowWristMoved = false;
+
     for (int word = 0; word < 5; ++word)
     {
         if (strcmp(jointOrder[word], "base") == 0)
@@ -24,13 +26,20 @@ void TaskManager::executeMove(
         {
             _arm.setShoulder(waypoint.shoulderAngle);
         }
-        else if (strcmp(jointOrder[word], "elbow") == 0)
+        else if (strcmp(jointOrder[word], "elbow") == 0 ||
+                 strcmp(jointOrder[word], "wrist") == 0)
         {
-            _arm.setElbow(waypoint.elbowAngle);
-        }
-        else if (strcmp(jointOrder[word], "wrist") == 0)
-        {
-            _arm.setWrist(waypoint.wristAngle);
+            // Elbow and wrist move together via moveJointsSync so they
+            // arrive at the same time instead of one after the other.
+            // The second occurrence of either name is a no-op, so skip
+            // its delay too.
+            if (elbowWristMoved)
+            {
+                continue;
+            }
+
+            _arm.setElbowWrist(waypoint.elbowAngle, waypoint.wristAngle);
+            elbowWristMoved = true;
         }
         else if (strcmp(jointOrder[word], "claw") == 0)
         {
@@ -40,7 +49,7 @@ void TaskManager::executeMove(
         {
             printf("Joint name not recognized: %s\n", jointOrder[word]);
         }
-        delay(100); 
+        delay(100);
     }
 }
 

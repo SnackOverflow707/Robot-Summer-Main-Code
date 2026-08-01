@@ -40,15 +40,15 @@
 #define CLAW_OFFSET 0
 
 //joint speeds 
-#define DEFAULT_OMEGA 60 //in deg/s 
+#define DEFAULT_OMEGA 75 //in deg/s 
 #define OMEGA_BASE 75
-#define OMEGA_SHOULDER 30   
+#define OMEGA_SHOULDER 45   
 #define OMEGA_ELBOW DEFAULT_OMEGA
 #define OMEGA_WRIST DEFAULT_OMEGA
 #define OMEGA_CLAW 100 //in deg/s  
 
 //specific joint angles. Default min/max are in ArmServo.h  
-#define MAX_ANGLE_CLAW 45
+#define MAX_ANGLE_CLAW 43
 
 #define CLAW_CLOSED MAX_ANGLE_CLAW  
 #define CLAW_OPEN MIN_ANGLE 
@@ -67,6 +67,7 @@ public:
     void setShoulder(int angle);
     void setElbow(int angle);
     void setWrist(int angle);
+    void setElbowWrist(int elbowAngle, int wristAngle);
     void setClaw(int angle);
 
     int getBase() const;

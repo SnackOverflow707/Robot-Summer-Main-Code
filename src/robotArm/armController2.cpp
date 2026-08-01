@@ -187,6 +187,9 @@ void ArmController2::setElbow(int angle) {
 void ArmController2::setWrist(int angle) {
     moveJoint(_wristServo, angle, OMEGA_WRIST, WRIST_OFFSET);
 }
+void ArmController2::setElbowWrist(int elbowAngle, int wristAngle) {
+    moveJointsSync(_elbowServo, _wristServo, elbowAngle + ELBOW_OFFSET, wristAngle + WRIST_OFFSET, OMEGA_ELBOW);
+}
 void ArmController2::setClaw(int angle) {
     moveClaw(_clawServo, angle, OMEGA_CLAW);
 }
