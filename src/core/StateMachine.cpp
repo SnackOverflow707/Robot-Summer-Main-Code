@@ -556,7 +556,6 @@ void update(const Inputs& inputs)
 
         case State::SLOW_TAPE_FOLLOWING:
             tapeFollowStep();
-            //IRAligner::update();
 
             if (irDetected && irTriggerArmed)
             {
@@ -566,6 +565,7 @@ void update(const Inputs& inputs)
             break;
 
         case State::IR_ALIGNING:
+
             IRAligner::update();
 
             if (IRAligner::isFinished())
@@ -578,7 +578,11 @@ void update(const Inputs& inputs)
             }
             break;
 
-        
+        case State::MANUAL_IR_ALIGNING:
+
+            //add stuff here. 
+
+            break;
 
         case State::RIP_SOLAR_PANEL:
            SolarPanelRipper::update();

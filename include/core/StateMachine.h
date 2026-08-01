@@ -25,6 +25,7 @@ enum class State
 
     SLOW_TAPE_FOLLOWING,
     IR_ALIGNING,
+    MANUAL_IR_ALIGNING, 
 
     RIP_SOLAR_PANEL,
     ENDPOINT,
