@@ -20,7 +20,7 @@
 // Each mechanism should expose the functions used below.
 
 #include "core/states/RockGrabber.h"
-//#include "core/states/TowerPieceGrabber.h"
+#include "core/states/SlowTapeFollowing.h"
 #include "core/states/TowerRam.h"
 #include "core/states/TowerBuilder.h"
 #include "core/states/TapeReturn.h"
@@ -51,12 +51,9 @@ static constexpr float METAL_CHECK_CONFIRM_RATIO = 0.6f;
 
 static constexpr uint8_t NUM_ROCKS = 6;
 
-static constexpr int STRAFE_SPEED = 150;
-static constexpr int IR_TUNE_SPEED = 60;
 
-static constexpr unsigned long STRAFE_TIME_MS = 600;
-static constexpr unsigned long IR_TUNE_FORWARD_TIME_MS = 400;
-static constexpr unsigned long IR_TUNE_BACKWARD_TIME_MS = 400;
+
+
 static constexpr unsigned long SENSOR_DEBOUNCE_MS = 100;
 
 static constexpr int SENSOR_SELECT_PIN = 11;
@@ -156,6 +153,7 @@ static void stopAllMechanisms()
     SolarPanelRipper::stop();
     IRAligner::stop();
     TowerRam::stop();
+    SlowTapeFollowing::stop();
 }
 
 static void stopCurrentOutputs()
@@ -226,10 +224,8 @@ static void changeState(State newState)
             break;
 
         case State::SLOW_TAPE_FOLLOWING:
-            resetTapePID();
-            setTapeBaseSpeed(60);
-
-            setTapeFollowing(true);
+            SlowTapeFollowing::begin();
+            SlowTapeFollowing::start();
             break;
 
         case State::IR_ALIGNING:
@@ -555,14 +551,18 @@ void update(const Inputs& inputs)
             break;
 
         case State::SLOW_TAPE_FOLLOWING:
-            tapeFollowStep();
+            SlowTapeFollowing::update();
 
-            if (irDetected && irTriggerArmed)
+            if (SlowTapeFollowing::isIRDetected(
+                    inputs.mag1,
+                    inputs.mag2
+                ) &&
+                irTriggerArmed)
             {
                 irTriggerArmed = false;
                 changeState(State::IR_ALIGNING);
             }
-            break;
+        break;
 
         case State::IR_ALIGNING:
 
