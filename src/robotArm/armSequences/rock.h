@@ -5,6 +5,7 @@
 #include "../taskManager.h"
 
 #define CLAW_CLOSED_ROCK 20 //update 
+#define ROCK_MAX_TIME 30*1000 //the max search time we're willing to allot to find the rock 
 
 
 /*I'm rewriting this based on the fact that the chassis should stop with the rock at the same location relative 

@@ -1,4 +1,5 @@
 #pragma once
+#include "rock.h"
 
 namespace RockGrabber
 {

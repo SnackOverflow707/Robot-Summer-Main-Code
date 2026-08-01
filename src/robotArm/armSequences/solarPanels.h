@@ -4,20 +4,19 @@
 #include "../ArmController2.h"
 #include "../taskManager.h"
 
-#define PANEL_NATTEMPTS 3 //total attempts including the initial attempt, if failed 
+#define CLAW_CLOSED_PANEL 43
 
 //positions to reach the solar panels
-static const ArmPose ORIENT = { 60, 70, 250, 195, false}; //base turns 90deg, claw is open
-static const ArmPose GRAB_PANEL = {180, 70, 250, 195, true}; //update after testing
-static const ArmPose RETRACT = {0, 160, 205, 0, true}; //update after testing
-static const ArmPose RECENTER = {90, 160, 205, 0,true};
+static const ArmPose REACH_PANEL = {40, 165, 270, 190, 35}; 
+static const ArmPose GRAB_PANEL = {40, 165, 270, 190, CLAW_CLOSED_PANEL}; //update after testing
+static const ArmPose RECENTER = {135, 90, 270, 190, CLAW_CLOSED_PANEL};
 
 inline void solarPanelSequence(TaskManager& taskManager) {
 
-    taskManager.executeMove(ORIENT); 
+    taskManager.executeMove(REACH_PANEL); 
+    delay(250); 
     taskManager.executeMove(GRAB_PANEL); 
-    //taskManager.objectGripCheckSequence(GRAB_PANEL, PANEL_NATTEMPTS);
-    taskManager.executeMove(RETRACT);  
+    delay(400); 
     taskManager.executeMove(RECENTER); 
 
 }
