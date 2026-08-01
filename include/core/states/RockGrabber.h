@@ -1,5 +1,5 @@
 #pragma once
-#include "rock.h"
+#include "robotArm/armSequences/rock.h"
 
 namespace RockGrabber
 {

@@ -11,11 +11,11 @@
 /*I'm rewriting this based on the fact that the chassis should stop with the rock at the same location relative 
 to the arm base each time because we have the positional sensors.*/
 
-const char* rockPositions[] = {
+static const char* rockPositions[] = {
     "right", "left", "right", "right", "left", "right"
 }; 
 
-const char* rockPickupOrder[] = {
+static const char* rockPickupOrder[] = {
     "base", "claw", "elbow", "shoulder", "wrist" 
 };
 
@@ -33,8 +33,8 @@ struct rockPoses {
     ArmPose grab; 
 }; 
 
-rockPoses rightRockPoses = {REACH_RIGHT, GRAB_RIGHT}; 
-rockPoses leftRockPoses = {REACH_LEFT, GRAB_LEFT}; 
+static const rockPoses rightRockPoses = {REACH_RIGHT, GRAB_RIGHT}; 
+static const rockPoses leftRockPoses = {REACH_LEFT, GRAB_LEFT}; 
 
 static const std::vector<ArmPose> PLACE_ROCK_ON_CHASSIS = {
     ROCK_TO_CHASSIS, 
