@@ -36,7 +36,7 @@ void start()
     currentState = RipperState::RUNNING;
 
     // This currently runs the entire arm sequence before returning.
-    solarPanelSequence(taskManager);
+    solarPanelSequence_1KHz(taskManager);
 
     currentState = RipperState::FINISHED;
 }
