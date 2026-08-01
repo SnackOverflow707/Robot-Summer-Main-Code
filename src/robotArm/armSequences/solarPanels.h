@@ -11,8 +11,8 @@ static const ArmPose REACH_PANEL = {40, 165, 270, 190, 10};
 static const ArmPose GRAB_PANEL = {40, 165, 270, 190, CLAW_CLOSED_PANEL}; //update after testing
 static const ArmPose RECENTER = {135, 90, 270, 190, CLAW_CLOSED_PANEL};
 
-const char* reachPanelOrder[] = { "claw", "shoulder", "elbow", "wrist", "base" };
-const char* recenterOrder[] = {"elbow", "wrist", "base", "shoulder", "claw"};
+inline const char* reachPanelOrder[] = { "claw", "shoulder", "elbow", "wrist", "base" };
+inline const char* recenterOrder[] = {"elbow", "wrist", "base", "shoulder", "claw"};
 
 inline void solarPanelSequence(TaskManager& taskManager) {
     taskManager.executeMove(REACH_PANEL, reachPanelOrder); 
