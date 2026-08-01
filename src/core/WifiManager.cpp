@@ -630,7 +630,7 @@ json += poseData.valid
         const String name = _server.arg("name");
         if (name == "solarPanel") {
             TaskManager tm(_arm);
-            solarPanelSequence(tm);
+            solarPanelSequence_1KHz(tm);
             _server.send(200, "text/plain", "OK");
         } else {
             _server.send(400, "text/plain", "Unknown sequence: " + name);
