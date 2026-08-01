@@ -324,7 +324,7 @@ void restart()
 
     if (enabled)
     {
-        changeState(State::SLOW_TAPE_FOLLOWING);
+        changeState(State::ENDPOINT);
     }
     else
     {
