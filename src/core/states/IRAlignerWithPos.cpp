@@ -44,8 +44,8 @@ static constexpr unsigned long FORWARD_SEARCH_TIME_MS = 2000;
 //
 // These are NOT "stop here" thresholds.
 // They only reject noise / weak background signals.
-static constexpr uint16_t MAG1_MIN_VALID_PEAK = 10000;
-static constexpr uint16_t MAG2_MIN_VALID_PEAK = 3000;
+static constexpr uint16_t MAG1_MIN_VALID_PEAK = 20000;
+static constexpr uint16_t MAG2_MIN_VALID_PEAK = 5000;
 
 // Once the signal falls below this fraction of the best
 // signal seen, we assume we have passed the peak.
