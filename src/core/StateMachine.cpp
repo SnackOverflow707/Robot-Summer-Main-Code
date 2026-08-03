@@ -4,7 +4,6 @@
 #include "tape_logic/TapeFollower.h"
 #include "tape_logic/SideSensors.h"
 #include "actuators/MecanumDrive.h"
-#include "core/states/RockApproach.h"
 
 
 // Expected mechanism files:
@@ -27,7 +26,7 @@
 #include "core/states/IRAligner.h"
 #include "core/states/IRAlignerManual.h"
 #include "core/states/SolarPanelRipper.h"
-
+#include "core/states/RockApproach.h"
 
 extern MecanumDrive drive;
 
@@ -457,25 +456,40 @@ void update(const Inputs& inputs)
 
                 if (rp.strafe)
                 {
-                    // Strafe in the opposite direction until a sensor sees
-                    // the dark tape.
-                    while (!onTape)
+                    const unsigned long forcedStrafeStart = millis();
+                
+                    // Force a short movement back toward the tape.
+                    while (millis() - forcedStrafeStart < 60)
+                    {
+                        if (rp.coil == 0)
+                        {
+                            drive.strafeRight(150);
+                        }
+                        else
+                        {
+                            drive.strafeLeft(150);
+                        }
+                
+                        delay(5);
+                    }
+                
+                    bool onTape = false;
+                    const unsigned long returnStart = millis();
+                
+                    while (!onTape && millis() - returnStart < 3000)
                     {
                         UART::update();
                         updateTapeSensors();
-
+                
                         const TapeFollowerStatus status =
                             getTapeFollowerStatus();
-
-                        // Tape is dark, not white.
-                        // Stop when either sensor reaches the tape.
+                
                         onTape =
                             !status.leftWhite ||
                             !status.rightWhite;
-
+                
                         if (!onTape)
                         {
-                            // Reverse the approach strafe direction.
                             if (rp.coil == 0)
                             {
                                 drive.strafeRight(150);
@@ -485,10 +499,10 @@ void update(const Inputs& inputs)
                                 drive.strafeLeft(150);
                             }
                         }
-        
-                        delay(20);
+                
+                        delay(5);
                     }
-
+                
                     drive.stop();
                 }
 
