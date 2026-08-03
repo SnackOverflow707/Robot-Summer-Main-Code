@@ -290,3 +290,16 @@ void MecanumDrive::strafeRightWithDist(float distance, int speed, int maxInvalid
 
     stop();
 }
+void MecanumDrive::driveTo(
+    float x,
+    float y,
+    int speed,
+    int maxInvalidReadings
+)
+{
+    // Stub: intentionally does nothing for now.
+    (void)x;
+    (void)y;
+    (void)speed;
+    (void)maxInvalidReadings;
+}
