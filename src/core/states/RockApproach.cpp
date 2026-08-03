@@ -3,8 +3,6 @@
 #include "actuators/MecanumDrive.h"
 #include "tape_logic/TapeFollower.h"
 #include "comms/UART.h"
-#include "core/StateMachine.h"
-#include "core/states/CourseTimeBudget.h"
 
 extern MecanumDrive drive;
 
@@ -17,12 +15,12 @@ namespace RockApproach
         // 1 -> right coil
         // (AS VIEWED FROM THE REAR)
         
-        {96.0217f, -781.6851f, 1}, 
-        {1000.0f, 2000.0f, 0},
-        {1000.0f, 2000.0f, 0},
-        {1000.0f, 2000.0f, 0},
-        {1000.0f, 2000.0f, 0},
-        {1000.0f, 2000.0f, 0}
+        {25.8519f, -678.1096f, 1, true}, 
+        {-70.1696f, -1162.2463f, 0, true},
+        {69.1623f, -1634.2124f, 1, false},
+        {332.4659f, -2195.5691f, 0, false},
+        {403.3069f, -3962.0701f, 1, false},
+        {202.6187f, -4283.2061f, 0, true}
     };
 
     struct ScanPos {
@@ -41,43 +39,37 @@ namespace RockApproach
     };
 
     #define STRAFE_SPEED 150
-    #define POSITION_TOLERANCE 80.0f //pixels
+    #define STRAFE_AMOUNT 10.0f //UPDATE
+    #define Y_TOLERANCE 20.0f //pixels on y (along tape)
 
     // States
     enum class Phase {
+        AWAIT_Y,
         STRAFE_TO_SCAN,
         METAL_CHECK,
-        STRAFE_TO_TAPE,
         DONE,
         FAILED
     };
 
     static Phase s_phase = Phase::DONE;
     static uint8_t s_rockIndex = 0;
+    static float s_strafeStartX = 0.0f;
 
     static float getPoseX() { return UART::getPoseData().x; }
     static float getPoseY() { return UART::getPoseData().y; }
 
-    static float distance(float x1, float y1, float x2, float y2) {
-        float dx = x2 - x1;
-        float dy = y2 - y1;
+    // static float distance(float x1, float y1, float x2, float y2) {
+    //     float dx = x2 - x1;
+    //     float dy = y2 - y1;
 
-        return sqrtf(dx*dx + dy*dy);
-    }
+    //     return sqrtf(dx*dx + dy*dy);
+    // }
 
     void begin() {}
 
     void start(uint8_t rockIndex) {
-        // Go/no-go: don't commit to another rock if there isn't enough
-        // course time left to attempt it and still make the tower/panels.
-        if (StateMachine::getCourseElapsedMs() + ROCK_APPROACH_WORST_CASE_MS >
-            ROCK_TIME_DEADLINE_MS) {
-            s_phase = Phase::FAILED;
-            return;
-        }
-
         s_rockIndex = rockIndex;
-        s_phase = Phase::STRAFE_TO_SCAN;
+        s_phase = Phase::AWAIT_Y;
         drive.stop();
     }
 
@@ -92,21 +84,37 @@ namespace RockApproach
 
     switch (s_phase) {
 
-        case Phase::STRAFE_TO_SCAN: {
-            float d = distance(px, py, scan.x, scan.y);
+        case Phase::AWAIT_Y: {
+            // just wait until Y is close to rock 
+            float dy = fabsf(py - rp.y);
+            if (dy < Y_TOLERANCE) {
+                drive.stop();
+                if (rp.strafe) {
+                    s_strafeStartX = px;   // record X when we stop
+                    s_phase = Phase::STRAFE_TO_SCAN;
+                } else{
+                    s_phase = Phase::METAL_CHECK; //no srafing required
+                }
+                
+            }
+            break;
+        }
 
-            // stops when POSITION_TOLERANCE pixels from rock
-            if (d < POSITION_TOLERANCE) {
+        case Phase::STRAFE_TO_SCAN: {
+            float strafed = fabsf(px - s_strafeStartX);
+
+            if (strafed >= STRAFE_AMOUNT) {
                 drive.stop();
                 s_phase = Phase::METAL_CHECK;
                 break;
             }
 
-            if (rp.coil == 0) 
+            // strafe direction based on coil side
+            if (rp.coil == 0)
                 drive.strafeLeft(STRAFE_SPEED);
             else
                 drive.strafeRight(STRAFE_SPEED);
-            
+
             break;
         }
 
@@ -118,24 +126,10 @@ namespace RockApproach
             s_phase = Phase::DONE; //goes to ROCK_METAL_CHECK
             break;
 
-        case Phase::STRAFE_TO_TAPE: {
-            // strafe back toward tape until sensor detects it
-            if (scan.y > ROCK_POSITIONS[s_rockIndex].y)
-                drive.strafeRight(STRAFE_SPEED);
-            else
-                drive.strafeLeft(STRAFE_SPEED);
-
-            TapeFollowerStatus status = getTapeFollowerStatus();
-            if (status.leftWhite || status.rightWhite) {
-                drive.stop();
-                s_phase = Phase::DONE;
-            }
-            break;
-        }
-
         default: break;
     }
 }
+
 void stop() {
     drive.stop();
     s_phase = Phase::FAILED;
@@ -143,6 +137,7 @@ void stop() {
 
 bool isFinished() { return s_phase == Phase::DONE; }
 bool hasFailed()  { return s_phase == Phase::FAILED; }
+bool isWaitingForY() { return s_phase == Phase::AWAIT_Y; }
 
 const RockPos* getRockPositions() { return ROCK_POSITIONS; }
 
