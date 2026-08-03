@@ -40,6 +40,8 @@ namespace StateMachine
 static constexpr uint16_t MAG1_THRESHOLD = 20000;
 static constexpr uint16_t MAG2_THRESHOLD = 3000;
 static constexpr uint16_t METAL_THRESHOLD = 50;
+static unsigned long courseStartTime = 0;
+
 
 // How long to sit still and sample the metal detector before deciding.
 // Longer = more confident, but costs time on every false alarm.
@@ -284,7 +286,7 @@ void begin()
     enabled = false;
     sideTapeSightings = 0;
     rockIndex = 0;
-
+    courseStartTime = millis();
     irTriggerArmed = true;
     metalTriggerArmed = true;
     sideTapeArmed = true;
@@ -690,5 +692,8 @@ bool isSelectedDetected(uint16_t mag1, uint16_t mag2)
 
     return mag2 > MAG2_THRESHOLD;
 }
-
+unsigned long getCourseElapsedMs()
+{
+    return millis() - courseStartTime;
+}
 } // namespace StateMachine
