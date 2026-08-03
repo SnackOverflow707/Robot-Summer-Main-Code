@@ -1,5 +1,6 @@
 
 #include "core/states/IRAlignerManual.h"
+#include "core/states/SlowTapeFollowing.h"
 
 #include <Arduino.h>
 #include <math.h>
@@ -12,25 +13,15 @@ extern MecanumDrive drive;
 namespace IRAlignerManual
 {
 
-// --------------------------------------------------
-// Configuration
-// --------------------------------------------------
-
-// Target solar-panel location relative to the side-tape reference.
-//
-// Replace these values with your measured coordinates.
-static constexpr float SOLAR_PANEL_FROM_SIDE_TAPES_DX = 0.0f;
-static constexpr float SOLAR_PANEL_FROM_SIDE_TAPES_DY = 0.0f;
-
 // Speed supplied to MecanumDrive::driveTo().
 static constexpr int TRAVEL_SPEED = 80;
 
 // Maximum allowed final position error.
 static constexpr float ARRIVAL_TOLERANCE_M = 0.05f;
 
-// --------------------------------------------------
-// Internal state
-// --------------------------------------------------
+//UPDATE AFTER TESTING 
+static constexpr int ROTATE_SPEED = 140;
+static constexpr unsigned long ROTATE_TIME_MS = 3500;
 
 enum class ManualAlignState
 {
@@ -40,47 +31,35 @@ enum class ManualAlignState
     FAILED
 };
 
-static ManualAlignState currentState =
-    ManualAlignState::IDLE;
+static ManualAlignState currentState = ManualAlignState::IDLE;
 
 // --------------------------------------------------
 // Internal helpers
 // --------------------------------------------------
 
-static void driveToSolarPanelCoordinates(
-    float currentX,
-    float currentY
-)
+static void driveToSolarPanelCoordinates(float currentX, float currentY)
 {
-    const float travelX =
-        SOLAR_PANEL_FROM_SIDE_TAPES_DX - currentX;
+    const float travelX = SOLAR_PANEL_FROM_SIDE_TAPES_DX - currentX;
+    const float travelY = SOLAR_PANEL_FROM_SIDE_TAPES_DY - currentY;
 
-    const float travelY =
-        SOLAR_PANEL_FROM_SIDE_TAPES_DY - currentY;
+    //step 1: drive backwards until align in Y --> through testing the position sensor we determined that fwd/bckwd changes Y. 
+    drive.driveBackward(travelY, TRAVEL_SPEED); 
 
-    drive.driveTo(
-        travelX,
-        travelY,
-        TRAVEL_SPEED
-    );
+    //step 2: strafe until align in X 
+    drive.strafeRightWithDist(travelX, TRAVEL_SPEED); 
+
+    //step 3 (after testing:) hardcode rotation to align properly if needed 
+    /* 
+    float startTime = millis(); 
+    while (millis() - startTime <= ROTATE_TIME_MS) {
+        drive.rotateAboutCenter(ROTATE_SPEED); 
+    }; 
+    */
+
+   drive.stop(); 
+  
 }
 
-static float calculateRemainingDistance(
-    float currentX,
-    float currentY
-)
-{
-    const float errorX =
-        SOLAR_PANEL_FROM_SIDE_TAPES_DX - currentX;
-
-    const float errorY =
-        SOLAR_PANEL_FROM_SIDE_TAPES_DY - currentY;
-
-    return sqrtf(
-        errorX * errorX +
-        errorY * errorY
-    );
-}
 
 // --------------------------------------------------
 // Public state controls
@@ -89,9 +68,7 @@ static float calculateRemainingDistance(
 void begin()
 {
     drive.stop();
-
-    currentState =
-        ManualAlignState::IDLE;
+    currentState = ManualAlignState::IDLE;
 }
 
 void start()
@@ -101,100 +78,31 @@ void start()
         return;
     }
 
-    const UART::PoseData startPose =
-        UART::getPoseData();
+    const UART::PoseData startLoc = UART::getPoseData();
 
-    if (!startPose.valid)
+    if (!startLoc.valid)
     {
-        Serial.println(
-            "[IRAlignerManual] Invalid starting pose"
-        );
-
         drive.stop();
-
-        currentState =
-            ManualAlignState::FAILED;
-
+        currentState = ManualAlignState::FAILED;
         return;
     }
 
-    currentState =
-        ManualAlignState::DRIVING;
+    currentState = ManualAlignState::DRIVING;
+    driveToSolarPanelCoordinates(startLoc.x,startLoc.y);
+    //const UART::PoseData finalLoc = UART::getPoseData();
+    currentState = ManualAlignState::FINISHED;
 
-    Serial.printf(
-        "[IRAlignerManual] Starting at x=%.3f y=%.3f\n",
-        startPose.x,
-        startPose.y
-    );
-
-    /*
-     * MecanumDrive::driveTo() is assumed to block until it reaches
-     * its target tolerance or times out.
-     */
-    driveToSolarPanelCoordinates(
-        startPose.x,
-        startPose.y
-    );
-
-    drive.stop();
-
-    const UART::PoseData finalPose =
-        UART::getPoseData();
-
-    if (!finalPose.valid)
-    {
-        Serial.println(
-            "[IRAlignerManual] Invalid final pose"
-        );
-
-        currentState =
-            ManualAlignState::FAILED;
-
-        return;
-    }
-
-    const float remainingDistance =
-        calculateRemainingDistance(
-            finalPose.x,
-            finalPose.y
-        );
-
-    Serial.printf(
-        "[IRAlignerManual] Final x=%.3f y=%.3f error=%.3f m\n",
-        finalPose.x,
-        finalPose.y,
-        remainingDistance
-    );
-
-    if (remainingDistance <= ARRIVAL_TOLERANCE_M)
-    {
-        currentState =
-            ManualAlignState::FINISHED;
-    }
-    else
-    {
-        currentState =
-            ManualAlignState::FAILED;
-    }
 }
 
 void update()
 {
-    /*
-     * Nothing is needed here because start() currently calls the
-     * blocking MecanumDrive::driveTo() function.
-     *
-     * If driveTo() becomes non-blocking later, its progress checks
-     * should be moved here.
-     */
+    //i don't think anything is needed here. 
 }
 
 void stop()
 {
     drive.stop();
-
-    currentState =
-        ManualAlignState::IDLE;
+    currentState = ManualAlignState::IDLE;
 }
 
 // --------------------------------------------------
@@ -209,8 +117,7 @@ bool isFinished()
 
 bool hasFailed()
 {
-    return currentState ==
-        ManualAlignState::FAILED;
+    return currentState == ManualAlignState::FAILED;
 }
 
 bool isDone()

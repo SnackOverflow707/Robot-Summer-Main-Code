@@ -14,10 +14,6 @@ extern MecanumDrive drive;
 namespace SlowTapeFollowing
 {
 
-// --------------------------------------------------
-// Configuration
-// --------------------------------------------------
-
 static constexpr int TAPE_SPEED = 60;
 
 static constexpr uint16_t MAG1_THRESHOLD = 20000;
@@ -25,11 +21,9 @@ static constexpr uint16_t MAG2_THRESHOLD = 3000;
 
 static constexpr int SENSOR_SELECT_PIN = 11;
 
-// These constants must either be defined here or declared in the header.
-// Replace the placeholder values with your measured distances.
-static constexpr float SOLAR_PANEL_FROM_SIDE_TAPES_DX = 10000.0f;
+// PLACEHOLDERS. 
+static constexpr float SOLAR_PANEL_FROM_SIDE_TAPES_DX = 10000.0f; 
 static constexpr float SOLAR_PANEL_FROM_SIDE_TAPES_DY = 10000.0f;
-
 static constexpr float SEARCH_THRESHOLD_X = 0.05f;
 static constexpr float SEARCH_THRESHOLD_Y = 0.05f;
 
@@ -47,8 +41,7 @@ enum class SlowTapeFollowState
     FAILED
 };
 
-static SlowTapeFollowState currentState =
-    SlowTapeFollowState::IDLE;
+static SlowTapeFollowState currentState = SlowTapeFollowState::IDLE;
 
 static bool running = false;
 
@@ -63,15 +56,11 @@ static float sideTapeY = 0.0f;
 
 static int sideTapeSightings = 0;
 
-// --------------------------------------------------
-// Internal helpers
-// --------------------------------------------------
+
 
 static bool isFlowSensorDataValid()
 {
-    const UART::PoseData& flowData =
-        UART::getPoseData();
-
+    const UART::PoseData& flowData = UART::getPoseData();
     return flowData.valid;
 }
 
@@ -101,50 +90,7 @@ static bool haveSolarPanelsPassed()
     return xReached && yReached;
 }
 
-static void changeState(
-    SlowTapeFollowState newState
-)
-{
-    currentState = newState;
 
-    switch (currentState)
-    {
-        case SlowTapeFollowState::IDLE:
-            setTapeFollowing(false);
-            drive.stop();
-            break;
-
-        case SlowTapeFollowState::FOLLOWING:
-            resetTapePID();
-            setTapeBaseSpeed(TAPE_SPEED);
-            setTapeFollowing(true);
-            break;
-
-        case SlowTapeFollowState::IR_DETECTED:
-            setTapeFollowing(false);
-            drive.stop();
-            break;
-
-        case SlowTapeFollowState::DRIVE_TO_PANELS:
-            setTapeFollowing(false);
-            drive.stop();
-            break;
-
-        case SlowTapeFollowState::FINISHED:
-            setTapeFollowing(false);
-            drive.stop();
-            break;
-
-        case SlowTapeFollowState::FAILED:
-            setTapeFollowing(false);
-            drive.stop();
-            break;
-    }
-}
-
-// --------------------------------------------------
-// Public controls
-// --------------------------------------------------
 
 void begin()
 {
@@ -164,15 +110,10 @@ void begin()
     sideTapeSightings = 0;
     sideTapesPassed = false;
 
-    /*
-     * Start unarmed so the robot must first see white before the first
-     * side-tape detection can be counted.
-     */
+    //Start unarmed so the robot must first see white before the first side tape detection can be counted.
+
     sideTapeArmed = false;
 
-    changeState(
-        SlowTapeFollowState::IDLE
-    );
 }
 
 void start()
@@ -189,9 +130,7 @@ void start()
 
     running = true;
 
-    changeState(
-        SlowTapeFollowState::FOLLOWING
-    );
+    currentState = SlowTapeFollowState::FOLLOWING;
 }
 
 void update()
@@ -211,89 +150,46 @@ void update()
         case SlowTapeFollowState::FOLLOWING:
         {
             tapeFollowStep();
+            const UART::PoseData& flowData = UART::getPoseData();
+            const UART::Data& uartData = UART::getData();
 
-            const UART::PoseData& flowData =
-                UART::getPoseData();
-
-            const UART::Data& uartData =
-                UART::getData();
-
-            /*
-             * IR detection does not depend on the flow pose, so check it
-             * even if position data is temporarily invalid.
-             */
-            if (isIRDetected(
-                    uartData.mag1,
-                    uartData.mag2
-                ))
-            {
-                changeState(
-                    SlowTapeFollowState::IR_DETECTED
-                );
-
+            //IR doesn't depend on the flow pose, so check it even if position data is temporarily invalid.
+            if (isIRDetected(uartData.mag1, uartData.mag2)) {
+                currentState = SlowTapeFollowState::IR_DETECTED; 
                 break;
             }
 
             if (!flowData.valid)
             {
-                /*
-                 * Keep tape following, but do not update position-based
-                 * logic until valid pose data is available.
-                 */
+                // Keep tape following, but don't update pos until valid data is available
                 break;
             }
 
             currentX = flowData.x;
             currentY = flowData.y;
 
-            if (!sideTapesPassed &&
-                haveSideTapesPassed())
-            {
+            if (!sideTapesPassed && haveSideTapesPassed()) {
                 sideTapeX = currentX;
                 sideTapeY = currentY;
                 sideTapesPassed = true;
-
-                Serial.printf(
-                    "[SlowTape] Side tapes recorded at "
-                    "x=%.3f y=%.3f\n",
-                    sideTapeX,
-                    sideTapeY
-                );
             }
-            else if (haveSolarPanelsPassed())
-            {
-                changeState(
-                    SlowTapeFollowState::DRIVE_TO_PANELS
-                );
+            else if (haveSolarPanelsPassed()) {
+                currentState = SlowTapeFollowState::DRIVE_TO_PANELS; 
             }
-
             break;
         }
 
         case SlowTapeFollowState::IR_DETECTED:
         {
-            /*
-             * The upper-level state machine can now see isFinished() and
-             * switch into IR_ALIGNING.
-             */
-            changeState(
-                SlowTapeFollowState::FINISHED
-            );
-
+            //upper level state machine sees state and switches to automatic IR alignment
+            currentState = SlowTapeFollowState::FINISHED; 
             break;
         }
 
         case SlowTapeFollowState::DRIVE_TO_PANELS:
         {
-            /*
-             * Add the manual drive-to-panel action here.
-             *
-             * For now, mark this state finished immediately.
-             */
-            changeState(
-                SlowTapeFollowState::FINISHED
-            );
-
+            //upper level state machine sees state and switches to manual IR alignment. 
+            currentState = SlowTapeFollowState::FINISHED; 
             break;
         }
 
@@ -312,42 +208,27 @@ void update()
 void stop()
 {
     running = false;
-
-    changeState(
-        SlowTapeFollowState::IDLE
-    );
+    currentState = SlowTapeFollowState::IDLE; 
 }
 
-// --------------------------------------------------
-// Detection helpers
-// --------------------------------------------------
 
 bool haveSideTapesPassed()
 {
     const SideSensorStatus sideStatus =
         getSideSensorStatus();
 
-    /*
-     * Seeing white arms the next tape crossing.
-     */
+    // Seeing white arms the next tape crossing.
     if (!sideStatus.onTape)
     {
-        sideTapeArmed = true;
+        sideTapeArmed = true; //the point of this variable is bc you have to leave the tape first in order to detect the second one. 
         return false;
     }
 
-    /*
-     * Count the transition from white onto tape.
-     */
+    //count the no. of crossings. 
     if (sideStatus.onTape && sideTapeArmed)
     {
         sideTapeArmed = false;
-        ++sideTapeSightings;
-
-        Serial.printf(
-            "[SlowTape] Side tape sighting %d\n",
-            sideTapeSightings
-        );
+        sideTapeSightings++;
 
         if (sideTapeSightings >= 2)
         {
@@ -375,7 +256,5 @@ bool isIRDetected(
     return mag2 > MAG2_THRESHOLD;
 }
 }
-// --------------------------------------------------
-// Status
-// --------------------------------------------------
+
  
