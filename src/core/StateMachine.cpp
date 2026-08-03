@@ -51,10 +51,6 @@ static constexpr unsigned long METAL_CHECK_WINDOW_MS = 300;
 static constexpr float METAL_CHECK_CONFIRM_RATIO = 0.6f;
 
 static constexpr uint8_t NUM_ROCKS = 6;
-
-
-
-
 static constexpr unsigned long SENSOR_DEBOUNCE_MS = 100;
 
 static constexpr int SENSOR_SELECT_PIN = 11;
@@ -65,6 +61,7 @@ static constexpr int SENSOR_SELECT_PIN = 11;
 
 static State currentState = State::STOPPED;
 static unsigned long stateStartTime = 0;
+static unsigned long courseStartTime = 0;
 static bool enabled = false;
 
 static bool irTriggerArmed = true;
@@ -325,6 +322,8 @@ bool isEnabled()
 
 void restart()
 {
+    courseStartTime = millis();
+
     sideTapeSightings= 0;
     rockIndex = 0;
 
@@ -689,6 +688,11 @@ State getState()
 unsigned long getStateElapsedMs()
 {
     return millis() - stateStartTime;
+}
+
+unsigned long getCourseElapsedMs()
+{
+    return millis() - courseStartTime;
 }
 
 uint8_t getSideTapeTriggerCount()

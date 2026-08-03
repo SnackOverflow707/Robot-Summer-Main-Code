@@ -82,6 +82,7 @@ const char* getStateId();
 const char* getStateId(State state);
 
 unsigned long getStateElapsedMs();
+unsigned long getCourseElapsedMs();
 
 // This must match the uint8_t definition in StateMachine.cpp.
 uint8_t getSideTapeTriggerCount();

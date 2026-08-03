@@ -3,6 +3,8 @@
 #include "actuators/MecanumDrive.h"
 #include "tape_logic/TapeFollower.h"
 #include "comms/UART.h"
+#include "core/StateMachine.h"
+#include "core/states/CourseTimeBudget.h"
 
 extern MecanumDrive drive;
 
@@ -66,6 +68,14 @@ namespace RockApproach
     void begin() {}
 
     void start(uint8_t rockIndex) {
+        // Go/no-go: don't commit to another rock if there isn't enough
+        // course time left to attempt it and still make the tower/panels.
+        if (StateMachine::getCourseElapsedMs() + ROCK_APPROACH_WORST_CASE_MS >
+            ROCK_TIME_DEADLINE_MS) {
+            s_phase = Phase::FAILED;
+            return;
+        }
+
         s_rockIndex = rockIndex;
         s_phase = Phase::STRAFE_TO_SCAN;
         drive.stop();

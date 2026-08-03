@@ -3,6 +3,8 @@
 #include "robotArm/ArmController2.h"
 #include "robotArm/taskManager.h"
 #include "robotArm/armSequences/rock.h"
+#include "core/StateMachine.h"
+#include "core/states/CourseTimeBudget.h"
 
 // These objects must be created in main.cpp (same globals SolarPanelRipper uses).
 extern ArmController2 arm;
@@ -49,6 +51,15 @@ void start(int rockIndex)
     else if (rockIndex > 5)
     {
         rockIndex = 5;
+    }
+
+    // Go/no-go: don't commit the arm to another rock if there isn't
+    // enough course time left to grab it and still make the tower/panels.
+    if (StateMachine::getCourseElapsedMs() + ROCK_GRAB_WORST_CASE_MS >
+        ROCK_TIME_DEADLINE_MS)
+    {
+        currentState = GrabState::FAILED;
+        return;
     }
 
     currentState = GrabState::RUNNING;
