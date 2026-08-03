@@ -427,62 +427,75 @@ void update(const Inputs& inputs)
         case State::ROCK_METAL_CHECK:
         {
             ++metalCheckSampleCount;
-
+        
             if (metalDetected)
             {
                 ++metalCheckHitCount;
             }
-
-            if (getStateElapsedMs() >= METAL_CHECK_WINDOW_MS)
-            {
+        
+            /*if (getStateElapsedMs() >= METAL_CHECK_WINDOW_MS)
+            {*/
                 const float hitRatio =
                     static_cast<float>(metalCheckHitCount) /
                     static_cast<float>(metalCheckSampleCount);
-
+        
                 const RockApproach::RockPos& rp = RockApproach::ROCK_POSITIONS[rockIndex];
-
-            bool onTape = false;
-            unsigned long returnStart = millis();
-
-            if (rp.strafe) {
-                // strafe back to tape
-                while (!onTape && millis() - returnStart < 3000) {
-                    UART::update();
-                    updateTapeSensors();
-                    TapeFollowerStatus status = getTapeFollowerStatus();
-                    onTape = status.leftWhite || status.rightWhite;
-                    if (!onTape) {
-                        if (rp.coil == 0)
-                            drive.strafeRight(150);
-                        else
-                            drive.strafeLeft(150);
+        
+                bool onTape = false;
+                const unsigned long returnStart = millis();
+        
+                if (rp.strafe)
+                {
+                    // Strafe in the opposite direction until a sensor sees
+                    // the dark tape.
+                    while (!onTape)
+                    {
+                        UART::update();
+                        updateTapeSensors();
+        
+                        const TapeFollowerStatus status =
+                            getTapeFollowerStatus();
+        
+                        // Tape is dark, not white.
+                        // Stop when either sensor reaches the tape.
+                        onTape =
+                            !status.leftWhite ||
+                            !status.rightWhite;
+        
+                        if (!onTape)
+                        {
+                            // Reverse the approach strafe direction.
+                            if (rp.coil == 0)
+                            {
+                                drive.strafeRight(150);
+                            }
+                            else
+                            {
+                                drive.strafeLeft(150);
+                            }
+                        }
+        
+                        delay(5);
                     }
-                    delay(5);
+        
+                    drive.stop();
                 }
-                drive.stop();
-            }
-
-                if (hitRatio >= METAL_CHECK_CONFIRM_RATIO)
-                {
-                    // rockIndex still reflects the rock we just stopped
-                    // at; RockGrabber::start() (called from changeState's
-                    // entry action) reads it before we advance it below.
-                    changeState(State::ROCK_GRAB);
-                }
-                else
-                {
-                    // False alarm - resume the line and let the trigger
-                    // re-arm naturally once metalDetected drops out.
-                    changeState(State::TAPE_FOLLOW_ROCK_CHECK);
-                }
-
-                // Either way, this stop is done - advance to the next
-                // physical rock for next time.
+        
+                Serial.print("Rock ");
+                Serial.print(rockIndex);
+                Serial.print(" metal hit ratio: ");
+                Serial.println(hitRatio);
+        
+                // Move on to the next rock, regardless of metal result.
                 if (rockIndex < NUM_ROCKS - 1)
                 {
                     ++rockIndex;
                 }
-            }
+        
+                // Skip ROCK_GRAB and resume tape following.
+                changeState(State::TAPE_FOLLOW_ROCK_CHECK);
+            //}
+        
             break;
         }
 
