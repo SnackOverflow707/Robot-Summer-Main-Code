@@ -12,7 +12,7 @@
 // mechanisms/RockGrabber.h
 // mechanisms/TowerPieceGrabber.h
 // mechanisms/TowerRam.h
-// mechanisms/TowerBuilder.h 
+// mechanisms/TowerBuilder.h
 // mechanisms/TapeReturn.h
 // mechanisms/IRAligner.h
 // mechanisms/SolarPanelRipper.h
@@ -25,6 +25,7 @@
 #include "core/states/TowerBuilder.h"
 #include "core/states/TapeReturn.h"
 #include "core/states/IRAligner.h"
+#include "core/states/IRAlignerManual.h"
 #include "core/states/SolarPanelRipper.h"
 
 
@@ -97,6 +98,7 @@ const char* getStateName(State state)
     switch (state)
     {
         case State::TAPE_FOLLOW_ROCK_CHECK:   return "Tape Follow + Rock Check";
+        case State::ROCK_APPROACH:            return "Rock Approach";
         case State::ROCK_METAL_CHECK:         return "Rock Metal Check";
         case State::ROCK_GRAB:                return "Rock Grab";
         case State::TAPE_FOLLOW_TO_TOWER:     return "Tape Follow to Tower";
@@ -105,6 +107,7 @@ const char* getStateName(State state)
         case State::RETURN_TO_TAPE:           return "Return to Tape";
         case State::SLOW_TAPE_FOLLOWING:      return "Slow Tape Following";
         case State::IR_ALIGNING:         return "IR Tune Backward";
+        case State::MANUAL_IR_ALIGNING:       return "Manual IR Aligning";
         case State::RIP_SOLAR_PANEL:          return "Rip Solar Panel";
         case State::ENDPOINT:                 return "Endpoint";
         case State::STOPPED:                  return "Stopped";
@@ -122,6 +125,7 @@ const char* getStateId(State state)
     switch (state)
     {
         case State::TAPE_FOLLOW_ROCK_CHECK:   return "tape-rock";
+        case State::ROCK_APPROACH:            return "rock-approach";
         case State::ROCK_METAL_CHECK:         return "rock-metal-check";
         case State::ROCK_GRAB:                return "rock-grab";
         case State::TAPE_FOLLOW_TO_TOWER:     return "tape-to-tower";
@@ -130,6 +134,7 @@ const char* getStateId(State state)
         case State::RETURN_TO_TAPE:           return "return-to-tape";
         case State::SLOW_TAPE_FOLLOWING:      return "slow-tape";
         case State::IR_ALIGNING:              return "ir-aligning";
+        case State::MANUAL_IR_ALIGNING:       return "manual-ir-aligning";
         case State::RIP_SOLAR_PANEL:          return "rip-panel";
         case State::ENDPOINT:                 return "endpoint";
         case State::STOPPED:                  return "stopped";
@@ -154,6 +159,7 @@ static void stopAllMechanisms()
     TowerBuilder::stop();
     SolarPanelRipper::stop();
     IRAligner::stop();
+    IRAlignerManual::stop();
     TowerRam::stop();
     SlowTapeFollowing::stop();
 }
@@ -234,6 +240,11 @@ static void changeState(State newState)
 
             IRAligner::begin();
             IRAligner::start();
+            break;
+
+        case State::MANUAL_IR_ALIGNING:
+            IRAlignerManual::begin();
+            IRAlignerManual::start();
             break;
 
         case State::RIP_SOLAR_PANEL:
@@ -356,19 +367,19 @@ void update(const Inputs& inputs)
 
         const bool metalDetectedSensor0 =
         inputs.metalMagnitude0 > METAL_THRESHOLD;
-    
+
     const bool metalDetectedSensor1 =
         inputs.metalMagnitude1 > METAL_THRESHOLD;
-    
+
     // True if either detector sees metal.
     const bool metalDetected =
         metalDetectedSensor0 || metalDetectedSensor1;
-    
+
     if (!irDetected)
     {
         irTriggerArmed = true;
     }
-    
+
     if (!metalDetected)
     {
         metalTriggerArmed = true;
@@ -378,7 +389,7 @@ void update(const Inputs& inputs)
     {
         /*BELOW is commented out code which would work if the metal detectors
         had appropriate range.
-        
+
         Because they don't, we are changing the logic so that the robot strafes right or left
         to each rock as it tape follows to check if they contain metal*/
         // case State::TAPE_FOLLOW_ROCK_CHECK:
@@ -391,7 +402,7 @@ void update(const Inputs& inputs)
         //         break;
         //     }
         //     break;
-            
+
         //NEW LOGIC
     case State::TAPE_FOLLOW_ROCK_CHECK:
         tapeFollowStep();
@@ -427,23 +438,23 @@ void update(const Inputs& inputs)
         case State::ROCK_METAL_CHECK:
         {
             ++metalCheckSampleCount;
-        
+
             if (metalDetected)
             {
                 ++metalCheckHitCount;
             }
-        
+
             /*if (getStateElapsedMs() >= METAL_CHECK_WINDOW_MS)
             {*/
                 const float hitRatio =
                     static_cast<float>(metalCheckHitCount) /
                     static_cast<float>(metalCheckSampleCount);
-        
+
                 const RockApproach::RockPos& rp = RockApproach::ROCK_POSITIONS[rockIndex];
-        
+
                 bool onTape = false;
                 const unsigned long returnStart = millis();
-        
+
                 if (rp.strafe)
                 {
                     // Strafe in the opposite direction until a sensor sees
@@ -452,16 +463,16 @@ void update(const Inputs& inputs)
                     {
                         UART::update();
                         updateTapeSensors();
-        
+
                         const TapeFollowerStatus status =
                             getTapeFollowerStatus();
-        
+
                         // Tape is dark, not white.
                         // Stop when either sensor reaches the tape.
                         onTape =
                             !status.leftWhite ||
                             !status.rightWhite;
-        
+
                         if (!onTape)
                         {
                             // Reverse the approach strafe direction.
@@ -474,28 +485,28 @@ void update(const Inputs& inputs)
                                 drive.strafeLeft(150);
                             }
                         }
-        
+
                         delay(5);
                     }
-        
+
                     drive.stop();
                 }
-        
+
                 Serial.print("Rock ");
                 Serial.print(rockIndex);
                 Serial.print(" metal hit ratio: ");
                 Serial.println(hitRatio);
-        
+
                 // Move on to the next rock, regardless of metal result.
                 if (rockIndex < NUM_ROCKS - 1)
                 {
                     ++rockIndex;
                 }
-        
+
                 // Skip ROCK_GRAB and resume tape following.
                 changeState(State::TAPE_FOLLOW_ROCK_CHECK);
             //}
-        
+
             break;
         }
 
@@ -512,36 +523,36 @@ void update(const Inputs& inputs)
             case State::TAPE_FOLLOW_TO_TOWER:
                 {
                     const SideSensorStatus sideStatus = getSideSensorStatus();
-                
+
                     // Sensor has returned to white, so allow another sighting.
                     if (!sideStatus.onTape)
                     {
                         sideTapeArmed = true;
                     }
-                
+
                     // Count only when we hit tape while armed.
                     if (sideStatus.onTape && sideTapeArmed)
                     {
                         sideTapeArmed = false;
                         sideTapeSightings++;
-                
+
                         if (sideTapeSightings >= 2)
                         {
                             sideTapeSightings = 0;
                             sideTapeArmed = true;
-                
+
                             changeState(State::TOWER_RAM);
                             break;
                         }
                     }
-                
+
                     tapeFollowStep();
                     break;
                 }
-    
+
 
         case State::TOWER_RAM:
-        
+
             TowerRam::update();
 
             if (TowerRam::isFinished())
@@ -571,14 +582,22 @@ void update(const Inputs& inputs)
         case State::SLOW_TAPE_FOLLOWING:
             SlowTapeFollowing::update();
 
-            if (SlowTapeFollowing::isIRDetected(
-                    inputs.mag1,
-                    inputs.mag2
-                ) &&
-                irTriggerArmed)
+            // SlowTapeFollowing now owns its own IR-detection and
+            // panel-distance logic internally, and exposes which outcome
+            // occurred via wasIRDetected()/needsManualFallback()/hasFailed()
+            // -- route to the matching alignment path based on that instead
+            // of re-checking inputs.mag1/mag2 here.
+            if (SlowTapeFollowing::wasIRDetected())
             {
-                irTriggerArmed = false;
                 changeState(State::IR_ALIGNING);
+            }
+            else if (SlowTapeFollowing::needsManualFallback())
+            {
+                changeState(State::MANUAL_IR_ALIGNING);
+            }
+            else if (SlowTapeFollowing::hasFailed())
+            {
+                changeState(State::STOPPED);
             }
         break;
 
@@ -598,7 +617,16 @@ void update(const Inputs& inputs)
 
         case State::MANUAL_IR_ALIGNING:
 
-            //add stuff here. 
+            IRAlignerManual::update();
+
+            if (IRAlignerManual::isFinished())
+            {
+                changeState(State::RIP_SOLAR_PANEL);
+            }
+            else if (IRAlignerManual::hasFailed())
+            {
+                changeState(State::STOPPED);
+            }
 
             break;
 
@@ -613,7 +641,7 @@ void update(const Inputs& inputs)
             {
                 changeState(State::STOPPED);
             }
-    
+
         break;
             break;
 
@@ -648,6 +676,7 @@ bool requestState(State state)
 bool requestStateById(const String& stateId)
 {
     if (stateId == "tape-rock")          return requestState(State::TAPE_FOLLOW_ROCK_CHECK);
+    if (stateId == "rock-approach")      return requestState(State::ROCK_APPROACH);
     if (stateId == "rock-metal-check")   return requestState(State::ROCK_METAL_CHECK);
     if (stateId == "rock-grab")          return requestState(State::ROCK_GRAB);
     if (stateId == "tape-to-tower")      return requestState(State::TAPE_FOLLOW_TO_TOWER);
@@ -656,6 +685,7 @@ bool requestStateById(const String& stateId)
     if (stateId == "return-to-tape")     return requestState(State::RETURN_TO_TAPE);
     if (stateId == "slow-tape")          return requestState(State::SLOW_TAPE_FOLLOWING);
     if (stateId == "ir-aligning")          return requestState(State::IR_ALIGNING);
+    if (stateId == "manual-ir-aligning") return requestState(State::MANUAL_IR_ALIGNING);
     if (stateId == "rip-panel")          return requestState(State::RIP_SOLAR_PANEL);
     if (stateId == "endpoint")           return requestState(State::ENDPOINT);
     if (stateId == "stopped")            return requestState(State::STOPPED);

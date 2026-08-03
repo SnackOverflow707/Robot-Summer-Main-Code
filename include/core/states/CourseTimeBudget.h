@@ -12,7 +12,7 @@ static constexpr unsigned long TOT_TIME_FOR_COURSE = 120000UL; // 2 minutes
 static constexpr unsigned long TOT_TIME_TOWER_AND_PANELS = 0UL;
 
 // Safety margin subtracted from the remaining rock-time budget.
-static constexpr unsigned long TIME_BUFFER = 0UL;
+static constexpr unsigned long TIME_BUFFER = 10 * 1000UL; //10 seconds? 
 
 // Latest course-elapsed time (ms) at which it's still worth starting
 // another rock attempt.
