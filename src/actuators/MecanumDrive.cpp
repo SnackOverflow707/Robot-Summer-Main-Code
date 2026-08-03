@@ -3,6 +3,7 @@
 #include "comms/UART.h"
 
 #include <Arduino.h>
+#include <math.h>
 
 namespace
 {
@@ -178,147 +179,113 @@ void MecanumDrive::leftWheelsForward(int speed)
     backRight.setSpeed(0);
 }
 
-void MecanumDrive::driveTo(
-    float dx,
-    float dy,
-    int speed
-)
+// NOTE: these two are still blocking -- they do not return until the
+// move finishes or bails out, during which nothing else on this board
+// runs. IRAlignerManual no longer calls these for exactly that reason
+// (see IRAlignerManual.cpp, which now drives incrementally from its own
+// non-blocking update() using UART::getPoseData() directly). Kept here,
+// bugs fixed, in case something else still wants a simple blocking
+// "drive until this far" call.
+//
+// FIXES applied vs. the original:
+//   1. Variable shadowing bug: the original declared `flowData` once
+//      before the loop, then declared a SECOND, shadowed `flowData`
+//      inside the loop body (only used for the position read). The
+//      `.valid` check was reading the stale, function-entry snapshot
+//      every single iteration, never the live value. Now there's one
+//      `flowData`, reassigned fresh at the top of every iteration.
+//   2. `stop()` was called on hitting maxInvalidReadings, then execution
+//      fell straight through into another backward()/strafeRight() call
+//      in the same iteration, undoing the stop. Now it `break`s out of
+//      the loop immediately instead.
+//   3. Default argument moved to the header declaration only -- having
+//      `= 10` here too is a compile error if MecanumDrive.h also
+//      declares this function (redefinition of default argument).
+//   4. Negative `distance` used to silently do nothing (the loop
+//      condition `abs(current-start) <= distance` was false from the
+//      first check). Now the sign of `distance` picks the direction.
+
+void MecanumDrive::driveBackward(float distance, int speed, int maxInvalidReadings)
 {
-    stop();
+    UART::PoseData flowData = UART::getPoseData();
+    const float startY = flowData.y;
+    float currentY = startY;
+    int currentInvalidReadings = 0;
 
-    // Get the starting pose.
-    UART::update();
+    const bool driveForward = (distance < 0.0f);
+    const float targetDistance = fabsf(distance);
 
-    const UART::PoseData start =
-        UART::getPoseData();
-
-    if (!start.valid)
+    while (fabsf(currentY - startY) <= targetDistance &&
+           currentInvalidReadings < maxInvalidReadings)
     {
-        return;
+        flowData = UART::getPoseData();
+
+        if (!flowData.valid)
+        {
+            ++currentInvalidReadings;
+        }
+        else
+        {
+            currentInvalidReadings = 0;
+            currentY = flowData.y;
+        }
+
+        if (currentInvalidReadings >= maxInvalidReadings)
+        {
+            break;
+        }
+
+        if (driveForward)
+        {
+            forward(speed);
+        }
+        else
+        {
+            backward(speed);
+        }
     }
 
-    // dx/dy are offsets from the current world position.
-    const float targetX =
-        start.x + dx;
+    stop();
+}
 
-    const float targetY =
-        start.y + dy;
+void MecanumDrive::strafeRightWithDist(float distance, int speed, int maxInvalidReadings)
+{
+    UART::PoseData flowData = UART::getPoseData();
+    const float startX = flowData.x;
+    float currentX = startX;
+    int currentInvalidReadings = 0;
 
-    const unsigned long startTime =
-        millis();
+    const bool driveLeft = (distance < 0.0f);
+    const float targetDistance = fabsf(distance);
 
-    while (true)
+    while (fabsf(currentX - startX) <= targetDistance &&
+           currentInvalidReadings < maxInvalidReadings)
     {
-        UART::update();
+        flowData = UART::getPoseData();
 
-        const UART::PoseData pose =
-            UART::getPoseData();
+        if (!flowData.valid)
+        {
+            ++currentInvalidReadings;
+        }
+        else
+        {
+            currentInvalidReadings = 0;
+            currentX = flowData.x;
+        }
 
-        // Lost pose data.
-        if (!pose.valid)
+        if (currentInvalidReadings >= maxInvalidReadings)
         {
             break;
         }
 
-        const float errorX =
-            targetX - pose.x;
-
-        const float errorY =
-            targetY - pose.y;
-
-        const float distance =
-            sqrtf(
-                errorX * errorX +
-                errorY * errorY
-            );
-
-        // Target reached.
-        if (distance <= DRIVE_TO_TOLERANCE_M)
+        if (driveLeft)
         {
-            break;
+            strafeLeft(speed);
         }
-
-        // Safety timeout.
-        if (
-            millis() - startTime >=
-            DRIVE_TO_TIMEOUT_MS
-        )
+        else
         {
-            break;
+            strafeRight(speed);
         }
-
-        // Convert world-frame error into robot-frame error.
-        const float cosTheta =
-            cosf(pose.theta);
-
-        const float sinTheta =
-            sinf(pose.theta);
-
-        const float forwardError =
-            errorX * cosTheta +
-            errorY * sinTheta;
-
-        const float strafeError =
-            -errorX * sinTheta +
-            errorY * cosTheta;
-
-        // Slow down near the destination.
-        const float speedScale =
-            min(
-                1.0f,
-                distance /
-                    DRIVE_TO_SLOWDOWN_RADIUS_M
-            );
-
-        const float commandMagnitude =
-            speed * speedScale;
-
-        const int forwardSpeed =
-            static_cast<int>(
-                commandMagnitude *
-                (forwardError / distance)
-            );
-
-        const int strafeSpeed =
-            static_cast<int>(
-                commandMagnitude *
-                (strafeError / distance)
-            );
-
-        // Mecanum mixing.
-        frontLeft.setSpeed(
-            constrain(
-                forwardSpeed + strafeSpeed,
-                -255,
-                255
-            )
-        );
-
-        frontRight.setSpeed(
-            constrain(
-                forwardSpeed - strafeSpeed,
-                -255,
-                255
-            )
-        );
-
-        backLeft.setSpeed(
-            constrain(
-                forwardSpeed - strafeSpeed,
-                -255,
-                255
-            )
-        );
-
-        backRight.setSpeed(
-            constrain(
-                forwardSpeed + strafeSpeed,
-                -255,
-                255
-            )
-        );
-
-        delay(5);
     }
 
     stop();
