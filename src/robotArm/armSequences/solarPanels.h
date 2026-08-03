@@ -20,7 +20,6 @@ inline void solarPanelSequence_1KHz(TaskManager& taskManager) {
     taskManager.executeMove(GRAB_PANEL_1k); 
     delay(400); 
     taskManager.executeMove(RECENTER, recenterOrder); 
-
 }
 
 #endif // SOLAR_PANELS_H
