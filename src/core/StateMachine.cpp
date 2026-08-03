@@ -419,7 +419,7 @@ void update(const Inputs& inputs)
         if (RockApproach::isFinished()) {
             changeState(State::ROCK_METAL_CHECK);
         } else if (RockApproach::hasFailed()) {
-            changeState(State::TAPE_FOLLOW_ROCK_CHECK);
+            changeState(State::ROCK_METAL_CHECK);
         }
         break;
 
@@ -475,7 +475,7 @@ void update(const Inputs& inputs)
                             }
                         }
         
-                        delay(5);
+                        delay(20);
                     }
         
                     drive.stop();
@@ -490,6 +490,9 @@ void update(const Inputs& inputs)
                 if (rockIndex < NUM_ROCKS - 1)
                 {
                     ++rockIndex;
+                }
+                else {
+                    changeState(State::TAPE_FOLLOW_TO_TOWER);
                 }
         
                 // Skip ROCK_GRAB and resume tape following.
