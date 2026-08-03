@@ -9,7 +9,7 @@ extern MecanumDrive drive;
 namespace RockApproach
 {
 
-    constexpr RockPos ROCK_POSITIONS[6] = {
+    const RockPos ROCK_POSITIONS[6] = {
         //UPDATE WITH REAL POSES!!
         // 0 -> left coil
         // 1 -> right coil
