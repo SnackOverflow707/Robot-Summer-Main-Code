@@ -232,6 +232,9 @@ static void changeState(State newState)
             break;
 
         case State::SLOW_TAPE_FOLLOWING:
+            resetTapePID();
+            setTapeBaseSpeed(100);
+            setTapeFollowing(true);
             SlowTapeFollowing::begin();
             SlowTapeFollowing::start();
             break;
