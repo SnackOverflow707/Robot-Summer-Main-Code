@@ -79,8 +79,8 @@ static bool haveSolarPanelsPassed()
     
     //changing to use total travel distance instead of individual X/Y... could be better since we know the robot follows tape reliably. 
     const float expectedTravelDistance = sqrt(
-        SOLAR_PANEL_CHECKPOINT_DX * SOLAR_PANEL_CHECKPOINT_DX +
-        SOLAR_PANEL_CHECKPOINT_DY * SOLAR_PANEL_CHECKPOINT_DY);
+        (SOLAR_PANEL_CHECKPOINT_DX) * (SOLAR_PANEL_CHECKPOINT_DX) +
+        (SOLAR_PANEL_CHECKPOINT_DY) * (SOLAR_PANEL_CHECKPOINT_DY));
 
     const float currentTravelDist = sqrt(travelledX*travelledX + travelledY*travelledY); 
     const bool distanceReached = currentTravelDist >= expectedTravelDistance; 
@@ -201,7 +201,8 @@ void update()
         {
             // FIX: same problem as IR_DETECTED -- collapsing to FINISHED here meant the caller
             // could never tell it needed to launch the manual fallback instead
-            drive.strafeRightWithDist(STRAFE_RIGHT_HARDCODED_DIST, TAPE_SPEED); 
+
+            //drive.strafeRightWithDist(STRAFE_RIGHT_HARDCODED_DIST, TAPE_SPEED); 
             break;
         }
 

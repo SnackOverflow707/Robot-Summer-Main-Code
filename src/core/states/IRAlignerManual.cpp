@@ -93,8 +93,15 @@ void update()
     {
         case ManualAlignState::DRIVING_Y:
         {
-            const UART::PoseData& pose = UART::getPoseData();
+            drive.stop(); 
+            currentState = ManualAlignState::STRAFE_TO_PANEL;
+            phaseStartTime = millis();
+            break;
 
+
+            /*
+            
+            const UART::PoseData& pose = UART::getPoseData();
             if (!pose.valid)
             {
                 ++invalidReadingCount;
@@ -110,7 +117,7 @@ void update()
                     phaseStartTime = millis();
                     break;
                 }
-                else if (pose.y < targetY)
+                else if (pose.y < targetY) 
                 {
                     drive.backward(TRAVEL_SPEED);
                 }
@@ -127,7 +134,7 @@ void update()
                 currentState = ManualAlignState::FAILED;
             }
 
-            break;
+            break;*/
         }
 
         case ManualAlignState::STRAFE_TO_PANEL:

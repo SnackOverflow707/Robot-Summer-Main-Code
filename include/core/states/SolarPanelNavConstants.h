@@ -9,8 +9,8 @@
 // straight from the sensor, in mm.") -- so these must be in mm too.
 
 //placeholder values for testing. 
-static constexpr float SOLAR_PANEL_CHECKPOINT_DX = -57.00f;
-static constexpr float SOLAR_PANEL_CHECKPOINT_DY = 600.000f;
+static constexpr float SOLAR_PANEL_CHECKPOINT_DX = -4.1126f;
+static constexpr float SOLAR_PANEL_CHECKPOINT_DY = 401.0409f;
 
 // Used by SlowTapeFollowing::haveSolarPanelsPassed() as a margin so the
 // transition out of tape-following fires slightly before the exact
