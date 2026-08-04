@@ -615,7 +615,10 @@ void update(const Inputs& inputs)
                 // panel (Y drive + hardcoded strafe) -- hand off to the
                 // IR-sensor-driven aligner for accurate close-range
                 // positioning instead of going straight to the ripper.
-                changeState(State::IR_ALIGNING);
+
+
+                //changeState(State::IR_ALIGNING); TEMPORARILY COMMENTED OUT FOR TESTING. 
+                drive.stop(); 
             }
             else if (IRAlignerManual::hasFailed())
             {
