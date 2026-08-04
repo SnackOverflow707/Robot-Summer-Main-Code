@@ -16,6 +16,7 @@ bool isDone();
 
 const char* getStateName();
 const char* getDebugStatus();
+const char* getPhaseName();
 
 } // namespace IRAlignerManual
 

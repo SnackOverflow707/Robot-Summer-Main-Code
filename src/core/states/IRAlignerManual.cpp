@@ -13,65 +13,42 @@ extern MecanumDrive drive;
 namespace IRAlignerManual
 {
 
-// Speed used while driving toward the target position.
+// Speed used while driving toward the target Y position.
 static constexpr int TRAVEL_SPEED = 80;
 
-// Maximum allowed final position error, checked per-axis (see update()).
+// Maximum allowed final position error on Y, checked against pose feedback.
 // Pose data (UART::PoseData) is in millimeters -- see
 // Sensor_ESP_Arduino/src/main.cpp -- so this must be in mm too.
 static constexpr float ARRIVAL_TOLERANCE_MM = 50.0f;
 
-// FIX: added -- driveToSolarPanelCoordinates() used to call blocking
-// drive.driveBackward()/strafeRightWithDist() helpers with no way for this
-// module to bail out except through their own (buggy) invalid-reading counter
 static constexpr uint8_t MAX_INVALID_READINGS = 10;
 static constexpr unsigned long PHASE_TIMEOUT_MS = 4000;
 
-//UPDATE AFTER TESTING
-static constexpr int ROTATE_SPEED = 140;
-static constexpr unsigned long ROTATE_TIME_MS = 3500;
+// Open-loop strafe toward the panel once Y is aligned -- deliberately not
+// pose-feedback-driven. This module's job is just to get roughly onto the
+// panel's IR beacon; IRAligner (entered once this module finishes) does
+// the accurate close-range positioning off the IR signal itself, which is
+// more reliable at short range than the flow-sensor pose.
+// TODO calibrate speed/time against SOLAR_PANEL_CHECKPOINT_DX via testing.
+static constexpr int HARDCODED_STRAFE_SPEED = 80;
+static constexpr unsigned long HARDCODED_STRAFE_TIME_MS = 1500;
+static constexpr bool STRAFE_RIGHT = SOLAR_PANEL_CHECKPOINT_DX >= 0.0f;
 
 enum class ManualAlignState
 {
     IDLE,
-    DRIVING,
+    DRIVING_Y,
+    STRAFE_TO_PANEL,
     FINISHED,
     FAILED
 };
 
-// FIX: added -- needed so DRIVING can be advanced a tick at a time in update()
-// instead of blocking start() until the whole maneuver finishes
-enum class DrivePhase
-{
-    Y,
-    X
-};
-
 static ManualAlignState currentState = ManualAlignState::IDLE;
-static DrivePhase currentPhase = DrivePhase::Y;
 
-static float targetX = 0.0f;
 static float targetY = 0.0f;
 
 static unsigned long phaseStartTime = 0;
 static uint8_t invalidReadingCount = 0;
-
-// --------------------------------------------------
-// Internal helpers
-// --------------------------------------------------
-
-static void driveToSolarPanelCoordinates()
-{
-    // FIX: this used to take currentX/currentY and compute
-    // SOLAR_PANEL_FROM_SIDE_TAPES_DX/DY - currentX as if the constant were an
-    // absolute coordinate. That's only correct if world (0,0) happens to be
-    // exactly where the side-tape crossing occurred. Anchoring to
-    // SlowTapeFollowing's recorded crossing position instead makes this
-    // correct regardless of where in the run that crossing happened.
-    targetX = SlowTapeFollowing::getSideTapeX() + SOLAR_PANEL_FROM_SIDE_TAPES_DX;
-    targetY = SlowTapeFollowing::getSideTapeY() + SOLAR_PANEL_FROM_SIDE_TAPES_DY;
-}
-
 
 // --------------------------------------------------
 // Public state controls
@@ -85,7 +62,8 @@ void begin()
 
 void start()
 {
-    if (currentState == ManualAlignState::DRIVING)
+    if (currentState == ManualAlignState::DRIVING_Y ||
+        currentState == ManualAlignState::STRAFE_TO_PANEL)
     {
         return;
     }
@@ -99,99 +77,85 @@ void start()
         return;
     }
 
-    // FIX: this used to call driveToSolarPanelCoordinates(startLoc.x, startLoc.y)
-    // and block here until the entire two-step drive finished (that function called
-    // drive.driveBackward()/strafeRightWithDist(), both blocking while() loops) --
-    // stalling the whole board's main loop for the whole maneuver. Now start() just
-    // sets the target and phase; update() below drives it one tick at a time.
-    driveToSolarPanelCoordinates();
-    currentPhase = DrivePhase::Y;
+    // Anchored to SlowTapeFollowing's recorded crossing position, not
+    // world (0,0) -- see SlowTapeFollowing::getSideTapeY().
+    targetY = SlowTapeFollowing::getSideTapeY() + SOLAR_PANEL_CHECKPOINT_DY;
+
     phaseStartTime = millis();
     invalidReadingCount = 0;
 
-    currentState = ManualAlignState::DRIVING;
+    currentState = ManualAlignState::DRIVING_Y;
 }
 
 void update()
 {
-    // FIX: this used to be empty because start() did the whole drive itself.
-    // Now this is where the actual driving happens, a tick at a time.
-    if (currentState != ManualAlignState::DRIVING)
+    switch (currentState)
     {
-        return;
-    }
-
-    const UART::PoseData& pose = UART::getPoseData();
-
-    if (!pose.valid)
-    {
-        invalidReadingCount++;
-    }
-    else
-    {
-        invalidReadingCount = 0;
-
-        if (currentPhase == DrivePhase::Y)
+        case ManualAlignState::DRIVING_Y:
         {
-            //step 1: drive toward target Y --> through testing the position sensor we determined that fwd/bckwd changes Y.
-            if (fabsf(pose.y - targetY) <= ARRIVAL_TOLERANCE_MM)
+            const UART::PoseData& pose = UART::getPoseData();
+
+            if (!pose.valid)
             {
-                currentPhase = DrivePhase::X;
-                phaseStartTime = millis();
-            }
-            else if (pose.y < targetY)
-            {
-                drive.backward(TRAVEL_SPEED);
+                ++invalidReadingCount;
             }
             else
             {
-                drive.forward(TRAVEL_SPEED); // FIX: original always called driveBackward() even when the target actually needed forward motion
-            }
-        }
-        else
-        {
-            //step 2: strafe until align in X
-            if (fabsf(pose.x - targetX) <= ARRIVAL_TOLERANCE_MM)
-            {
-                // FIX: check BOTH axes independently before declaring success, not just X --
-                // |finalY - targetY| could theoretically have drifted back out while strafing
+                invalidReadingCount = 0;
+
                 if (fabsf(pose.y - targetY) <= ARRIVAL_TOLERANCE_MM)
                 {
                     drive.stop();
-                    currentState = ManualAlignState::FINISHED;
+                    currentState = ManualAlignState::STRAFE_TO_PANEL;
+                    phaseStartTime = millis();
+                    break;
+                }
+                else if (pose.y < targetY)
+                {
+                    drive.backward(TRAVEL_SPEED);
                 }
                 else
                 {
-                    drive.stop();
-                    currentState = ManualAlignState::FAILED;
+                    drive.forward(TRAVEL_SPEED);
                 }
-                return;
             }
-            else if (pose.x < targetX)
+
+            if (invalidReadingCount >= MAX_INVALID_READINGS ||
+                millis() - phaseStartTime >= PHASE_TIMEOUT_MS)
             {
-                drive.strafeRight(TRAVEL_SPEED);
+                drive.stop();
+                currentState = ManualAlignState::FAILED;
+            }
+
+            break;
+        }
+
+        case ManualAlignState::STRAFE_TO_PANEL:
+        {
+            // Open-loop: no pose check, just run for a fixed time.
+            if (millis() - phaseStartTime >= HARDCODED_STRAFE_TIME_MS)
+            {
+                drive.stop();
+                currentState = ManualAlignState::FINISHED;
+                break;
+            }
+
+            if (STRAFE_RIGHT)
+            {
+                drive.strafeRight(HARDCODED_STRAFE_SPEED);
             }
             else
             {
-                drive.strafeLeft(TRAVEL_SPEED); // FIX: original always called strafeRightWithDist() even when the target needed strafeLeft instead
+                drive.strafeLeft(HARDCODED_STRAFE_SPEED);
             }
+
+            break;
         }
-    }
 
-    //step 3 (after testing:) hardcode rotation to align properly if needed
-    /*
-    float startTime = millis();
-    while (millis() - startTime <= ROTATE_TIME_MS) {
-        drive.rotateAboutCenter(ROTATE_SPEED);
-    };
-    */
-
-    // FIX: added -- neither invalid-reading nor stuck-forever protection existed once
-    // start() stopped blocking, since the old bail-out lived inside MecanumDrive's helpers
-    if (invalidReadingCount >= MAX_INVALID_READINGS || millis() - phaseStartTime >= PHASE_TIMEOUT_MS)
-    {
-        drive.stop();
-        currentState = ManualAlignState::FAILED;
+        case ManualAlignState::IDLE:
+        case ManualAlignState::FINISHED:
+        case ManualAlignState::FAILED:
+            break;
     }
 }
 
@@ -207,8 +171,7 @@ void stop()
 
 bool isFinished()
 {
-    return currentState ==
-        ManualAlignState::FINISHED;
+    return currentState == ManualAlignState::FINISHED;
 }
 
 bool hasFailed()
@@ -228,8 +191,11 @@ const char* getStateName()
         case ManualAlignState::IDLE:
             return "Idle";
 
-        case ManualAlignState::DRIVING:
-            return "Driving to Solar Panel";
+        case ManualAlignState::DRIVING_Y:
+            return "Driving to Solar Panel (Y)";
+
+        case ManualAlignState::STRAFE_TO_PANEL:
+            return "Strafing to Solar Panel (X, hardcoded)";
 
         case ManualAlignState::FINISHED:
             return "Manual Alignment Finished";
@@ -241,27 +207,53 @@ const char* getStateName()
     return "Unknown";
 }
 
-// used by the website debug box -- phase- and direction-aware message,
-// e.g. "Driving backward to checkpoint (Y)" / "Strafing right to panel (X)"
+// used by the website debug box -- phase- and direction-aware message
 const char* getDebugStatus()
 {
-    if (currentState != ManualAlignState::DRIVING)
+    switch (currentState)
     {
-        return getStateName();
+        case ManualAlignState::DRIVING_Y:
+        {
+            const UART::PoseData& pose = UART::getPoseData();
+            return (pose.y < targetY)
+                ? "Driving backward to checkpoint (Y)"
+                : "Driving forward to checkpoint (Y)";
+        }
+
+        case ManualAlignState::STRAFE_TO_PANEL:
+            return STRAFE_RIGHT
+                ? "Strafing right (hardcoded) to panel (X)"
+                : "Strafing left (hardcoded) to panel (X)";
+
+        default:
+            return getStateName();
+    }
+}
+
+// used by the website's IR debug box -- a short, unambiguous phase tag so
+// the UI doesn't just say "Manual IR Aligning" (the top-level state name,
+// which doesn't change between the Y and strafe sub-phases) the whole time.
+const char* getPhaseName()
+{
+    switch (currentState)
+    {
+        case ManualAlignState::IDLE:
+            return "idle";
+
+        case ManualAlignState::DRIVING_Y:
+            return "drivingY";
+
+        case ManualAlignState::STRAFE_TO_PANEL:
+            return "strafingToPanel";
+
+        case ManualAlignState::FINISHED:
+            return "finished";
+
+        case ManualAlignState::FAILED:
+            return "failed";
     }
 
-    const UART::PoseData& pose = UART::getPoseData();
-
-    if (currentPhase == DrivePhase::Y)
-    {
-        return (pose.y < targetY)
-            ? "Driving backward to checkpoint (Y)"
-            : "Driving forward to checkpoint (Y)";
-    }
-
-    return (pose.x < targetX)
-        ? "Strafing right to panel (X)"
-        : "Strafing left to panel (X)";
+    return "unknown";
 }
 
 } // namespace IRAlignerManual

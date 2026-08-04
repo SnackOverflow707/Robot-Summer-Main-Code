@@ -611,7 +611,11 @@ void update(const Inputs& inputs)
 
             if (IRAlignerManual::isFinished())
             {
-                changeState(State::RIP_SOLAR_PANEL);
+                // IRAlignerManual only gets the robot roughly onto the
+                // panel (Y drive + hardcoded strafe) -- hand off to the
+                // IR-sensor-driven aligner for accurate close-range
+                // positioning instead of going straight to the ripper.
+                changeState(State::IR_ALIGNING);
             }
             else if (IRAlignerManual::hasFailed())
             {

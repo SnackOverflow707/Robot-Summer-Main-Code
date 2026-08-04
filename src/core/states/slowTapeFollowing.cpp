@@ -78,15 +78,19 @@ static bool haveSolarPanelsPassed()
 
     const bool xReached =
         travelledX >=
-        fabs(SOLAR_PANEL_FROM_SIDE_TAPES_DX) -
+        fabs(SOLAR_PANEL_CHECKPOINT_DX) -
         SEARCH_THRESHOLD_X_MM;
 
     const bool yReached =
         travelledY >=
-        fabs(SOLAR_PANEL_FROM_SIDE_TAPES_DY) -
+        fabs(SOLAR_PANEL_CHECKPOINT_DY) -
         SEARCH_THRESHOLD_Y_MM;
 
-    return xReached && yReached;
+    // Either axis alone is enough to call the panel "passed" -- requiring
+    // both meant whichever axis needed more travel (usually Y, since
+    // |DY| > |DX|) was always the deciding factor, silently making the
+    // other axis's threshold pointless.
+    return xReached || yReached;
 }
 
 
@@ -307,11 +311,11 @@ bool hasSideTapesPassed()
 // drives to, i.e. the recorded crossing plus the calibrated panel offset
 float getPanelTargetX()
 {
-    return sideTapeX + SOLAR_PANEL_FROM_SIDE_TAPES_DX;
+    return sideTapeX + SOLAR_PANEL_CHECKPOINT_DX;
 }
 
 float getPanelTargetY()
 {
-    return sideTapeY + SOLAR_PANEL_FROM_SIDE_TAPES_DY;
+    return sideTapeY + SOLAR_PANEL_CHECKPOINT_DY;
 }
 }

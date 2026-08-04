@@ -9,11 +9,11 @@
 // straight from the sensor, in mm.") -- so these must be in mm too.
 
 //placeholder values for testing. 
-static constexpr float SOLAR_PANEL_FROM_SIDE_TAPES_DX = -57.00f;
-static constexpr float SOLAR_PANEL_FROM_SIDE_TAPES_DY = 200.000f;
+static constexpr float SOLAR_PANEL_CHECKPOINT_DX = -57.00f;
+static constexpr float SOLAR_PANEL_CHECKPOINT_DY = 600.000f;
 
 // Used by SlowTapeFollowing::haveSolarPanelsPassed() as a margin so the
 // transition out of tape-following fires slightly before the exact
 // calibrated point, rather than requiring pixel-perfect arrival.
-static constexpr float SEARCH_THRESHOLD_X_MM = 30.0f;  // TODO tune
-static constexpr float SEARCH_THRESHOLD_Y_MM = 30.0f;  // TODO tune
+static constexpr float SEARCH_THRESHOLD_X_MM = 15.0f;  // TODO tune
+static constexpr float SEARCH_THRESHOLD_Y_MM = 15.0f;  // TODO tune

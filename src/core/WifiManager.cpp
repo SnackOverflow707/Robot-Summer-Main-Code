@@ -441,13 +441,20 @@ json += String(SlowTapeFollowing::getPanelTargetY(), 3);
 // Calibrated (constant) offset from the side-tape crossing to the panel,
 // shown as-is on the debug box instead of the live remaining distance.
 json += ",\"solarPanelDX\":";
-json += String(SOLAR_PANEL_FROM_SIDE_TAPES_DX, 3);
+json += String(SOLAR_PANEL_CHECKPOINT_DX, 3);
 
 json += ",\"solarPanelDY\":";
-json += String(SOLAR_PANEL_FROM_SIDE_TAPES_DY, 3);
+json += String(SOLAR_PANEL_CHECKPOINT_DY, 3);
 
 json += ",\"irManualDebugStatus\":\"";
 json += IRAlignerManual::getDebugStatus();
+json += "\"";
+
+// Short, unambiguous phase tag (idle/drivingY/drivingX/finished/failed) --
+// the top-level "State Machine" panel only ever shows "Manual IR Aligning"
+// for the whole Y+X maneuver, so this is the only place the sub-phase is visible.
+json += ",\"irManualPhase\":\"";
+json += IRAlignerManual::getPhaseName();
 json += "\"";
 
 const bool mag1Selected =
@@ -1004,6 +1011,11 @@ void WifiManager::showControlPage()
     <p>
         Panel passed:
         <span id="dbgPanelPassed" class="value">--</span>
+    </p>
+
+    <p>
+        IRAlignerManual phase:
+        <span id="dbgIRPhase" class="value">--</span>
     </p>
 
     <div id="dbg-log" style="background:#1e293b;color:#7dd3fc;font-family:'Courier New',monospace;font-size:12px;padding:10px;border-radius:6px;min-height:30px;white-space:pre;overflow-x:auto;margin-top:10px;">
@@ -1810,6 +1822,10 @@ else
 
         document.getElementById("dbgPanelPassed").textContent =
             data.irNeedsManualFallback ? "Y" : "N";
+
+        // Always shown (not gated on irNeedsManualFallback) so idle/finished/
+        // failed are visible too, not just the two driving phases.
+        document.getElementById("dbgIRPhase").textContent = data.irManualPhase;
 
         const dbgLog = document.getElementById("dbg-log");
         dbgLog.textContent = data.irNeedsManualFallback
