@@ -27,6 +27,7 @@ static uint8_t payload[MAX_PAYLOAD];
 static PoseData s_poseOffset = {0,0,0,0,0,0,0,0,false};
 
 
+
 enum FrameState
 {
     WAIT_SYNC,
@@ -386,6 +387,7 @@ static void processPoseFrame()
 PoseData getPoseData()
 {
     PoseData result = latestPoseData;
+
     result.x -= s_poseOffset.x;
     result.y -= s_poseOffset.y;
     result.theta -= s_poseOffset.theta;
@@ -393,11 +395,17 @@ PoseData getPoseData()
     return result;
 }
 
-void resetFlowPose() {
-    auto p = getPoseData();
-    s_poseOffset.x     = p.x;
-    s_poseOffset.y     = p.y;
-    s_poseOffset.theta = p.theta;
+void resetFlowPose()
+{
+    if (!latestPoseData.valid)
+    {
+        return;
+    }
+
+    s_poseOffset.x = latestPoseData.x;
+    s_poseOffset.y = latestPoseData.y;
+    s_poseOffset.theta = latestPoseData.theta;
 }
+
 
 } // namespace UART
