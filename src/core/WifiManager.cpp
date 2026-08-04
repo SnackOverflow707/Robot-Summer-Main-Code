@@ -3,6 +3,8 @@
 #include "tape_logic/SideSensors.h"
 #include "comms/UART.h"
 #include "core/StateMachine.h"
+#include "core/states/SlowTapeFollowing.h"
+#include "core/states/IRAlignerManual.h"
 #include "robotArm/ArmController2.h"
 #include "robotArm/taskManager.h"
 #include "robotArm/armSequences/solarPanels.h"
@@ -407,6 +409,38 @@ json += ",";
 json += "\"sideTapeCount\":";
 json += String(StateMachine::getSideTapeTriggerCount());
 
+// Whether SlowTapeFollowing has seen both side-tape crossings yet, plus
+// the pose it auto-recorded the moment that happened.
+json += ",\"sideTapesPassed\":";
+json += SlowTapeFollowing::hasSideTapesPassed() ? "true" : "false";
+
+json += ",\"sideTapeSnapX\":";
+json += String(SlowTapeFollowing::getSideTapeX(), 3);
+
+json += ",\"sideTapeSnapY\":";
+json += String(SlowTapeFollowing::getSideTapeY(), 3);
+
+// Which IR alignment path this run actually took -- set once by
+// SlowTapeFollowing and held until the next start(), so this stays
+// readable even after the robot has moved on to RIP_SOLAR_PANEL.
+json += ",\"irWasAutoDetected\":";
+json += SlowTapeFollowing::wasIRDetected() ? "true" : "false";
+
+json += ",\"irNeedsManualFallback\":";
+json += SlowTapeFollowing::needsManualFallback() ? "true" : "false";
+
+// Debug box: the world-frame point IRAlignerManual is actually driving
+// toward, plus a live phase/direction message while it's driving.
+json += ",\"panelTargetX\":";
+json += String(SlowTapeFollowing::getPanelTargetX(), 3);
+
+json += ",\"panelTargetY\":";
+json += String(SlowTapeFollowing::getPanelTargetY(), 3);
+
+json += ",\"irManualDebugStatus\":\"";
+json += IRAlignerManual::getDebugStatus();
+json += "\"";
+
 const bool mag1Selected =
     StateMachine::isMag1Selected();
 
@@ -481,22 +515,22 @@ json += poseData.valid
     : String(-1);
     json += ",\"metal0Hz\":";
     json += String(metal0.frequencyHz, 2);
-    
+
     json += ",\"metal0Valid\":";
     json += metal0.valid ? "true" : "false";
-    
+
     json += ",\"metal0AgeMs\":";
     json += metal0.valid
         ? String(millis() - metal0.lastUpdateMs)
         : String(-1);
-    
-    
+
+
     json += ",\"metal1Hz\":";
     json += String(metal1.frequencyHz, 2);
-    
+
     json += ",\"metal1Valid\":";
     json += metal1.valid ? "true" : "false";
-    
+
     json += ",\"metal1AgeMs\":";
     json += metal1.valid
         ? String(millis() - metal1.lastUpdateMs)
@@ -647,8 +681,8 @@ json += poseData.valid
         _server.send(200, "text/plain", "Printed to Serial.");
     });
 
-    // POSITION STUFF 
-    _server.on("/resetPose", HTTP_GET, [this]() 
+    // POSITION STUFF
+    _server.on("/resetPose", HTTP_GET, [this]()
     {
         UART::resetFlowPose();
         _server.send(200, "text/plain", "Pose reset to zero");
@@ -916,6 +950,56 @@ void WifiManager::showControlPage()
         </p>
         <p id="sideTapeStatus" class="value">Waiting...</p>
     </div>
+
+    <p style="margin-top:12px;">
+        Both side tapes passed:
+        <span id="sideTapesPassed" class="value">--</span>
+    </p>
+
+    <p id="sideTapeSnapRow" style="display:none;">
+        Snapshot position at 2nd crossing:
+        X = <span id="sideTapeSnapX" class="value">--</span>,
+        Y = <span id="sideTapeSnapY" class="value">--</span>
+    </p>
+</div>
+
+<div class="panel">
+    <h2>Debug: Panel Approach</h2>
+
+    <p>
+        2nd crossing (X, Y):
+        <span id="dbgCrossingX" class="value">--</span>,
+        <span id="dbgCrossingY" class="value">--</span>
+    </p>
+
+    <p>
+        dX to panel:
+        <span id="dbgDX" class="value">--</span>
+    </p>
+
+    <p>
+        dY to panel:
+        <span id="dbgDY" class="value">--</span>
+    </p>
+
+    <p>
+        Travelled X since crossing:
+        <span id="dbgTravelledX" class="value">--</span>
+    </p>
+
+    <p>
+        Travelled Y since crossing:
+        <span id="dbgTravelledY" class="value">--</span>
+    </p>
+
+    <p>
+        Panel passed:
+        <span id="dbgPanelPassed" class="value">--</span>
+    </p>
+
+    <div id="dbg-log" style="background:#1e293b;color:#7dd3fc;font-family:'Courier New',monospace;font-size:12px;padding:10px;border-radius:6px;min-height:30px;white-space:pre;overflow-x:auto;margin-top:10px;">
+// waiting for panel to pass...
+    </div>
 </div>
 
 
@@ -1170,6 +1254,7 @@ void WifiManager::showControlPage()
 <p>Mag 2: <span id="mag2">--</span></p>
 <p>Selected magnitude: <span id="selectedMagnitude">--</span></p>
 <p>Detected: <span id="detected">--</span></p>
+<p>Alignment mode: <span id="irAlignMode">--</span></p>
 <p>UART valid: <span id="uartValid">--</span></p>
 
 <p id="connectionStatus">
@@ -1674,6 +1759,55 @@ else
             !data.sideOnTape
         );
 
+        // Side-tape crossing count feeds SlowTapeFollowing's own
+        // "have we seen both crossings yet" flag, plus the pose it
+        // auto-snapshots the instant that flips true.
+        document.getElementById("sideTapesPassed").textContent =
+            data.sideTapesPassed ? "YES" : "NO";
+
+        const sideTapeSnapRow =
+            document.getElementById("sideTapeSnapRow");
+
+        if (data.sideTapesPassed)
+        {
+            sideTapeSnapRow.style.display = "";
+
+            document.getElementById("sideTapeSnapX").textContent =
+                Number(data.sideTapeSnapX).toFixed(3);
+
+            document.getElementById("sideTapeSnapY").textContent =
+                Number(data.sideTapeSnapY).toFixed(3);
+        }
+        else
+        {
+            sideTapeSnapRow.style.display = "none";
+        }
+
+        // Debug box: recompute travelled/remaining distance client-side
+        // from pose + the snapshot/target the C++ side already tracks.
+        document.getElementById("dbgCrossingX").textContent =
+            Number(data.sideTapeSnapX).toFixed(3);
+        document.getElementById("dbgCrossingY").textContent =
+            Number(data.sideTapeSnapY).toFixed(3);
+
+        const dbgDX = data.panelTargetX - data.poseX;
+        const dbgDY = data.panelTargetY - data.poseY;
+        const dbgTravelledX = data.poseX - data.sideTapeSnapX;
+        const dbgTravelledY = data.poseY - data.sideTapeSnapY;
+
+        document.getElementById("dbgDX").textContent = dbgDX.toFixed(3);
+        document.getElementById("dbgDY").textContent = dbgDY.toFixed(3);
+        document.getElementById("dbgTravelledX").textContent = dbgTravelledX.toFixed(3);
+        document.getElementById("dbgTravelledY").textContent = dbgTravelledY.toFixed(3);
+
+        document.getElementById("dbgPanelPassed").textContent =
+            data.irNeedsManualFallback ? "Y" : "N";
+
+        const dbgLog = document.getElementById("dbg-log");
+        dbgLog.textContent = data.irNeedsManualFallback
+            ? data.irManualDebugStatus
+            : "// waiting for panel to pass...";
+
         const towerRamSwitch =
         document.getElementById("towerRamSwitch");
 
@@ -1715,6 +1849,21 @@ document.getElementById(
     data.selectedDetected ?
     "YES" :
     "NO";
+
+const irAlignMode = document.getElementById("irAlignMode");
+
+if (data.irWasAutoDetected)
+{
+    irAlignMode.textContent = "Automatic (beacon detected)";
+}
+else if (data.irNeedsManualFallback)
+{
+    irAlignMode.textContent = "Manual fallback (beacon not found)";
+}
+else
+{
+    irAlignMode.textContent = "Not yet determined";
+}
 
 document.getElementById(
     "uartValid"
