@@ -74,8 +74,8 @@ namespace RockApproach
     }
 
     void update() {
-    if (s_phase == Phase::DONE || s_phase == Phase::FAILED) return;
-
+    //if (s_phase == Phase::DONE || s_phase == Phase::FAILED) return;
+    UART::update();
     float px = getPoseX();
     float py = getPoseY();
 
