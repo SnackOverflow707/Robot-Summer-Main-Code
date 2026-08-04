@@ -199,6 +199,7 @@ static void changeState(State newState)
 
         case State::ROCK_METAL_CHECK:
             drive.stop();
+            delay(500);
             metalCheckSampleCount = 0;
             metalCheckHitCount = 0;
             break;
@@ -407,7 +408,7 @@ void update(const Inputs& inputs)
 
         //NEW LOGIC
     case State::TAPE_FOLLOW_ROCK_CHECK:
-        tapeFollowStep();
+      {  tapeFollowStep();
         {
             auto pose = UART::getPoseData();
             if (pose.valid) {
@@ -421,36 +422,33 @@ void update(const Inputs& inputs)
                 }
             }
         }
-        break;
+        break;}
 
-    case State::ROCK_APPROACH:
-        // keep tape following while waiting for Y position
-        if (RockApproach::isWaitingForY()) {
-            tapeFollowStep();
-        }
+    case State::ROCK_APPROACH:{
         RockApproach::update();
+        // keep tape following while waiting for Y position
         if (RockApproach::isFinished()) {
             changeState(State::ROCK_METAL_CHECK);
         } else if (RockApproach::hasFailed()) {
             changeState(State::ROCK_METAL_CHECK);
         }
         break;
-
+    }
 
         case State::ROCK_METAL_CHECK:
         {
-            ++metalCheckSampleCount;
+           /* ++metalCheckSampleCount;
 
             if (metalDetected)
             {
                 ++metalCheckHitCount;
             }
 
-            /*if (getStateElapsedMs() >= METAL_CHECK_WINDOW_MS)
-            {*/
+            if (getStateElapsedMs() >= METAL_CHECK_WINDOW_MS)
+            {
                 const float hitRatio =
                     static_cast<float>(metalCheckHitCount) /
-                    static_cast<float>(metalCheckSampleCount);
+                    static_cast<float>(metalCheckSampleCount); */
 
                 const RockApproach::RockPos& rp = RockApproach::ROCK_POSITIONS[rockIndex];
 
@@ -459,28 +457,8 @@ void update(const Inputs& inputs)
 
                 if (rp.strafe)
                 {
-                    const unsigned long forcedStrafeStart = millis();
-                
-                    // Force a short movement back toward the tape.
-                    while (millis() - forcedStrafeStart < 60)
-                    {
-                        if (rp.coil == 0)
-                        {
-                            drive.strafeRight(150);
-                        }
-                        else
-                        {
-                            drive.strafeLeft(150);
-                        }
-                
-                        delay(5);
-                    }
-                
-                    bool onTape = false;
                     const unsigned long returnStart = millis();
                 
-                    while (!onTape && millis() - returnStart < 3000)
-                    {
                         UART::update();
                         updateTapeSensors();
                 
@@ -502,35 +480,27 @@ void update(const Inputs& inputs)
                                 drive.strafeLeft(150);
                             }
                         }
-                
-                        delay(5);
-                    }
-                
-                    drive.stop();
-                }
-
-                Serial.print("Rock ");
-                Serial.print(rockIndex);
-                Serial.print(" metal hit ratio: ");
-                Serial.println(hitRatio);
-
-                // Move on to the next rock, regardless of metal result.
-                if (rockIndex < NUM_ROCKS - 1)
-                {
-                    ++rockIndex;
+                        else{
+                            if (rockIndex < NUM_ROCKS - 1)
+                            {
+                                ++rockIndex;
+                                changeState(State::TAPE_FOLLOW_ROCK_CHECK);
+                            }
+                            else {
+                                changeState(State::TAPE_FOLLOW_TO_TOWER);
+                            }   
+                        }
                 }
                 else {
-                    changeState(State::TAPE_FOLLOW_TO_TOWER);
+                    delay(500);
+                    changeState(State::TAPE_FOLLOW_ROCK_CHECK);
                 }
+                break;
+                
+         }
         
-                // Skip ROCK_GRAB and resume tape following.
-                changeState(State::TAPE_FOLLOW_ROCK_CHECK);
-            //}
 
-            break;
-        }
-
-        case State::ROCK_GRAB:
+        case State::ROCK_GRAB:{
             RockGrabber::update();
 
             if (RockGrabber::isFinished() || RockGrabber::hasFailed())
@@ -538,7 +508,7 @@ void update(const Inputs& inputs)
                 changeState(State::TAPE_FOLLOW_ROCK_CHECK);
             }
             break;
-
+        }
 
             case State::TAPE_FOLLOW_TO_TOWER:
                 {

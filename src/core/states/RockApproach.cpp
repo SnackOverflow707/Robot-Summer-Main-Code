@@ -74,8 +74,8 @@ namespace RockApproach
     }
 
     void update() {
-    if (s_phase == Phase::DONE || s_phase == Phase::FAILED) return;
-
+    //if (s_phase == Phase::DONE || s_phase == Phase::FAILED) return;
+    UART::update();
     float px = getPoseX();
     float py = getPoseY();
 
@@ -87,7 +87,6 @@ namespace RockApproach
         case Phase::AWAIT_Y: {
             // just wait until Y is close to rock 
             float dy = fabsf(py - rp.y);
-            if (dy < Y_TOLERANCE) {
                 drive.stop();
                 if (rp.strafe) {
                     s_strafeStartX = px;   // record X when we stop
@@ -95,8 +94,6 @@ namespace RockApproach
                 } else{
                     s_phase = Phase::METAL_CHECK; //no srafing required
                 }
-                
-            }
             break;
         }
 
