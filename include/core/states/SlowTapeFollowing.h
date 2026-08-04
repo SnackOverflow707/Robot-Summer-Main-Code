@@ -12,6 +12,7 @@ void update();
 void stop();
 
 bool haveSideTapesPassed();
+bool hasSideTapesPassed();
 
 bool isIRDetected(
     uint16_t mag1,
@@ -27,6 +28,9 @@ bool isDone();
 
 float getSideTapeX();
 float getSideTapeY();
+
+float getPanelTargetX();
+float getPanelTargetY();
 
 } // namespace SlowTapeFollowing
 
