@@ -1,11 +1,11 @@
 #include "core/states/SlowTapeFollowing.h"
-#include "core/states/SolarPanelNavConstants.h"
 
 #include <Arduino.h>
 #include <math.h>
 
 #include "actuators/MecanumDrive.h"
 #include "comms/UART.h"
+#include "core/states/SolarPanelNavConstants.h"
 #include "tape_logic/SideSensors.h"
 #include "tape_logic/TapeFollower.h"
 
@@ -71,20 +71,20 @@ static bool haveSolarPanelsPassed()
     }
 
     const float travelledX =
-        currentX - sideTapeX;
+        fabs(currentX - sideTapeX);
 
     const float travelledY =
-        currentY - sideTapeY;
+        fabs(currentY - sideTapeY);
 
     const bool xReached =
         travelledX >=
-        SOLAR_PANEL_FROM_SIDE_TAPES_DX -
-        SEARCH_THRESHOLD_X;
+        fabs(SOLAR_PANEL_FROM_SIDE_TAPES_DX -
+        SEARCH_THRESHOLD_X_MM);
 
     const bool yReached =
         travelledY >=
-        SOLAR_PANEL_FROM_SIDE_TAPES_DY -
-        SEARCH_THRESHOLD_Y;
+        fabs(SOLAR_PANEL_FROM_SIDE_TAPES_DY -
+        SEARCH_THRESHOLD_Y_MM);
 
     return xReached && yReached;
 }
@@ -295,5 +295,23 @@ float getSideTapeX()
 float getSideTapeY()
 {
     return sideTapeY;
+}
+
+// used by the website to show "both side tapes passed" + the auto-snapshot
+bool hasSideTapesPassed()
+{
+    return sideTapesPassed;
+}
+
+// used by the debug box -- the actual world-frame target IRAlignerManual
+// drives to, i.e. the recorded crossing plus the calibrated panel offset
+float getPanelTargetX()
+{
+    return sideTapeX + SOLAR_PANEL_FROM_SIDE_TAPES_DX;
+}
+
+float getPanelTargetY()
+{
+    return sideTapeY + SOLAR_PANEL_FROM_SIDE_TAPES_DY;
 }
 }

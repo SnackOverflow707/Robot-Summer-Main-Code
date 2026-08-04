@@ -15,6 +15,7 @@ bool hasFailed();
 bool isDone();
 
 const char* getStateName();
+const char* getDebugStatus();
 
 } // namespace IRAlignerManual
 
