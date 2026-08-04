@@ -23,6 +23,7 @@ static constexpr int SENSOR_SELECT_PIN = 11;
 
 // give up if neither IR nor the panel-distance trigger fires in time -- FAILED used to be unreachable
 static constexpr unsigned long MAX_SEARCH_TIME_MS = 15000;
+static const float STRAFE_RIGHT_HARDCODED_DIST = 400.000f; 
 
 // --------------------------------------------------
 // Internal state
@@ -71,26 +72,21 @@ static bool haveSolarPanelsPassed()
     }
 
     const float travelledX =
-        fabs(currentX - sideTapeX);
+        fabs(currentX - sideTapeX); //idk man i think x is irrelevant perchance... unless we want to calculate w abs distance? 
 
     const float travelledY =
         fabs(currentY - sideTapeY);
+    
+    //changing to use total travel distance instead of individual X/Y... could be better since we know the robot follows tape reliably. 
+    const float expectedTravelDistance = sqrt(
+        SOLAR_PANEL_CHECKPOINT_DX * SOLAR_PANEL_CHECKPOINT_DX +
+        SOLAR_PANEL_CHECKPOINT_DY * SOLAR_PANEL_CHECKPOINT_DY);
 
-    const bool xReached =
-        travelledX >=
-        fabs(SOLAR_PANEL_CHECKPOINT_DX) -
-        SEARCH_THRESHOLD_X_MM;
+    const float currentTravelDist = sqrt(travelledX*travelledX + travelledY*travelledY); 
+    const bool distanceReached = currentTravelDist >= expectedTravelDistance; 
 
-    const bool yReached =
-        travelledY >=
-        fabs(SOLAR_PANEL_CHECKPOINT_DY) -
-        SEARCH_THRESHOLD_Y_MM;
-
-    // Either axis alone is enough to call the panel "passed" -- requiring
-    // both meant whichever axis needed more travel (usually Y, since
-    // |DY| > |DX|) was always the deciding factor, silently making the
-    // other axis's threshold pointless.
-    return xReached || yReached;
+    return distanceReached; 
+    
 }
 
 
@@ -205,6 +201,7 @@ void update()
         {
             // FIX: same problem as IR_DETECTED -- collapsing to FINISHED here meant the caller
             // could never tell it needed to launch the manual fallback instead
+            drive.strafeRightWithDist(STRAFE_RIGHT_HARDCODED_DIST, TAPE_SPEED); 
             break;
         }
 
