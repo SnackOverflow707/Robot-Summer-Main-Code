@@ -10,7 +10,7 @@
 
 //placeholder values for testing. 
 static constexpr float SOLAR_PANEL_FROM_SIDE_TAPES_DX = -57.00f;
-static constexpr float SOLAR_PANEL_FROM_SIDE_TAPES_DY = 600.000f;
+static constexpr float SOLAR_PANEL_FROM_SIDE_TAPES_DY = 200.000f;
 
 // Used by SlowTapeFollowing::haveSolarPanelsPassed() as a margin so the
 // transition out of tape-following fires slightly before the exact

@@ -5,6 +5,7 @@
 #include "core/StateMachine.h"
 #include "core/states/SlowTapeFollowing.h"
 #include "core/states/IRAlignerManual.h"
+#include "core/states/SolarPanelNavConstants.h"
 #include "robotArm/ArmController2.h"
 #include "robotArm/taskManager.h"
 #include "robotArm/armSequences/solarPanels.h"
@@ -436,6 +437,14 @@ json += String(SlowTapeFollowing::getPanelTargetX(), 3);
 
 json += ",\"panelTargetY\":";
 json += String(SlowTapeFollowing::getPanelTargetY(), 3);
+
+// Calibrated (constant) offset from the side-tape crossing to the panel,
+// shown as-is on the debug box instead of the live remaining distance.
+json += ",\"solarPanelDX\":";
+json += String(SOLAR_PANEL_FROM_SIDE_TAPES_DX, 3);
+
+json += ",\"solarPanelDY\":";
+json += String(SOLAR_PANEL_FROM_SIDE_TAPES_DY, 3);
 
 json += ",\"irManualDebugStatus\":\"";
 json += IRAlignerManual::getDebugStatus();
@@ -1790,13 +1799,12 @@ else
         document.getElementById("dbgCrossingY").textContent =
             Number(data.sideTapeSnapY).toFixed(3);
 
-        const dbgDX = data.panelTargetX - data.poseX;
-        const dbgDY = data.panelTargetY - data.poseY;
         const dbgTravelledX = data.poseX - data.sideTapeSnapX;
         const dbgTravelledY = data.poseY - data.sideTapeSnapY;
 
-        document.getElementById("dbgDX").textContent = dbgDX.toFixed(3);
-        document.getElementById("dbgDY").textContent = dbgDY.toFixed(3);
+        // Calibrated (constant) offset, not the live remaining distance.
+        document.getElementById("dbgDX").textContent = Number(data.solarPanelDX).toFixed(3);
+        document.getElementById("dbgDY").textContent = Number(data.solarPanelDY).toFixed(3);
         document.getElementById("dbgTravelledX").textContent = dbgTravelledX.toFixed(3);
         document.getElementById("dbgTravelledY").textContent = dbgTravelledY.toFixed(3);
 

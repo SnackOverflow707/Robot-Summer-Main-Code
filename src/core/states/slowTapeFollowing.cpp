@@ -78,13 +78,13 @@ static bool haveSolarPanelsPassed()
 
     const bool xReached =
         travelledX >=
-        fabs(SOLAR_PANEL_FROM_SIDE_TAPES_DX -
-        SEARCH_THRESHOLD_X_MM);
+        fabs(SOLAR_PANEL_FROM_SIDE_TAPES_DX) -
+        SEARCH_THRESHOLD_X_MM;
 
     const bool yReached =
         travelledY >=
-        fabs(SOLAR_PANEL_FROM_SIDE_TAPES_DY -
-        SEARCH_THRESHOLD_Y_MM);
+        fabs(SOLAR_PANEL_FROM_SIDE_TAPES_DY) -
+        SEARCH_THRESHOLD_Y_MM;
 
     return xReached && yReached;
 }
