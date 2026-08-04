@@ -479,7 +479,7 @@ void update(const Inputs& inputs)
                     bool onTape = false;
                     const unsigned long returnStart = millis();
                 
-                    while (!onTape && millis() - returnStart < 3000)
+                    while (!onTape)
                     {
                         UART::update();
                         updateTapeSensors();
