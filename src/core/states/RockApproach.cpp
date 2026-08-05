@@ -9,19 +9,15 @@ extern MecanumDrive drive;
 namespace RockApproach
 {
 
-    const RockPos ROCK_POSITIONS[6] = {
-        //UPDATE WITH REAL POSES!!
-        // 0 -> left coil
-        // 1 -> right coil
-        // (AS VIEWED FROM THE REAR)
         
-        {25.8519f, -678.1096f, 1, true}, 
-        {-70.1696f, -1162.2463f, 0, true},
-        {69.1623f, -1634.2124f, 1, false},
-        {332.4659f, -2195.5691f, 0, false},
-        {403.3069f, -3962.0701f, 1, false},
-        {202.6187f, -4283.2061f, 0, true}
-    };
+const RockPos ROCK_POSITIONS[6] = {
+    {  40.1208f,  -723.5691f, 1, true  },
+    { -64.6298f, -1183.8174f, 0, true  },
+    { 117.5088f, -1704.1790f, 1, false },
+    { 462.3132f, -2360.1294f, 1, false },
+    { 610.5424f, -4324.3765f, 0, false },
+    { 327.8498f, -4615.5718f, 1, true  }
+};
 
     struct ScanPos {
         float x;
@@ -31,7 +27,7 @@ namespace RockApproach
     static constexpr ScanPos SCAN_POSITIONS[6] = {
         //UPDATE!
         {193.3023f, -770.2703f}, 
-        {1000.0f, 2000.0f}, 
+        {1000.0f, 2000.0f},
         {1000.0f, 2000.0f}, 
         {1000.0f, 2000.0f}, 
         {1000.0f, 2000.0f}, 

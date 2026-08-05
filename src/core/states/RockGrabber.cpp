@@ -23,7 +23,9 @@ namespace RockGrabber
 // --------------------------------------------------
 
 static constexpr int CORRECTION_STRAFE_SPEED = 100;
-static constexpr unsigned long CORRECTION_STRAFE_TIME_MS = 600;
+static constexpr unsigned long CORRECTION_STRAFE_TIME_MS = 1000;
+static constexpr int CORRECTION_BACKWARD_SPEED = 100;
+static constexpr unsigned long CORRECTION_BACKWARD_TIME_MS = 500;
 
 // Small pause after stopping the drivetrain so the robot is not
 // still rocking when the arm starts moving.
@@ -43,6 +45,30 @@ enum class GrabState
     FINISHED,
     FAILED
 };
+
+const char* grabOrder[] = {
+    "wrist",
+    "elbow",
+    "claw",
+    "base",
+    "shoulder"
+};
+const char* putInBinOrder[] = {
+    "shoulder",
+    "base",
+    "wrist",
+    "elbow",
+    "claw"
+};
+const char* centreOrder[] = {
+    "wrist",
+    "elbow",
+    "shoulder",
+    "base",
+    "claw"
+};
+
+
 
 static GrabState currentState = GrabState::IDLE;
 
@@ -147,31 +173,38 @@ else
     drive.strafeRight(CORRECTION_STRAFE_SPEED);
 }
 
-delay(600);
+delay(CORRECTION_STRAFE_TIME_MS);
+
 drive.stop();
-delay(150);
+delay(DRIVE_SETTLE_TIME_MS);
+
+// Move backward after strafing.
+drive.backward(CORRECTION_BACKWARD_SPEED);
+delay(CORRECTION_BACKWARD_TIME_MS);
+
+drive.stop();
+delay(DRIVE_SETTLE_TIME_MS);
 
 // Reach and close the claw.
 if (rockIsRight)
 {
-    taskManager.executeMove(RIGHT_ROCK_GRAB_OPEN);
+    taskManager.executeMove(RIGHT_ROCK_GRAB_OPEN,grabOrder);
     taskManager.executeMove(RIGHT_ROCK_GRAB_CLOSED);
 }
 else
 {
-    taskManager.executeMove(LEFT_ROCK_GRAB_OPEN);
+    taskManager.executeMove(LEFT_ROCK_GRAB_OPEN ,grabOrder);
     taskManager.executeMove(LEFT_ROCK_GRAB_CLOSED);
 }
 
 // Lift and place the rock.
-taskManager.executeMove(ROCK_LIFT);
-taskManager.executeMove(ROCK_OVER_POST);
+taskManager.executeMove(ROCK_OVER_POST, putInBinOrder );
 taskManager.executeMove(ROCK_PLACE);
 
 arm.openClaw();
 delay(400);
 
-taskManager.executeMove(ROCK_RETRACT);
+taskManager.executeMove(ROCK_RETRACT,  centreOrder);
 
 // Strafe back toward the tape.
 while (true)

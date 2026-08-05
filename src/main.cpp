@@ -62,23 +62,15 @@ void loop()
         UART::getMetalData(1);
 
 
-    inputs.metalMagnitude0 =
+        inputs.metalMagnitude0 =
         metal0.valid
-            ? static_cast<uint16_t>(
-                constrain(
-                    metal0.frequencyHz,
-                    0.0f,
-                    65535.0f))
-            : 0;
-
+            ? metal0.frequencyHz
+            : 0.0f;
+    
     inputs.metalMagnitude1 =
         metal1.valid
-            ? static_cast<uint16_t>(
-                constrain(
-                    metal1.frequencyHz,
-                    0.0f,
-                    65535.0f))
-            : 0;
+            ? metal1.frequencyHz
+            : 0.0f;
 
 
     inputs.mag1 =

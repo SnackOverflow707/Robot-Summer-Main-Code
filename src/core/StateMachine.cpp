@@ -243,7 +243,7 @@ static void changeState(State newState)
 
         case State::TAPE_FOLLOW_TO_TOWER:
             resetTapePID();
-            setTapeBaseSpeed(120);
+            setTapeBaseSpeed(80);
             setTapeFollowing(true);
             break;
 
@@ -337,6 +337,7 @@ void begin()
     sideTapeArmed = true;
     returnTapeTriggerArmed = true;
     RockMetalCheck::resetBaselines();
+    isMetal = false;
 
     changeState(State::STOPPED);
 }
@@ -370,6 +371,7 @@ void restart()
     sideTapeArmed = true;
     returnTapeTriggerArmed = true;
     RockMetalCheck::resetBaselines();
+    isMetal = false;
 
     if (enabled)
     {
@@ -538,12 +540,16 @@ void update(const Inputs& inputs)
                 break;
             }
         
-            if (RockMetalCheck::metalFound())
-            {
-                isMetal = true;
-                changeState(State::ROCK_GRAB);
-                break;
-            }
+            const bool isLastRock = rockIndex == NUM_ROCKS - 1;
+
+            const bool shouldGrab = RockMetalCheck::metalFound() || (isLastRock && !isMetal);
+
+        if (shouldGrab)
+        {
+            isMetal = true;
+            changeState(State::ROCK_GRAB);
+            break;
+        }
         
             const RockApproach::RockPos& rock =
                 RockApproach::ROCK_POSITIONS[rockIndex];
@@ -559,13 +565,13 @@ void update(const Inputs& inputs)
         
             if (!onTape)
             {
-                if (rock.coil == 0)
+                if (rock.coil == 1 || rockIndex == 3)
                 {
-                    drive.strafeRight(150);
+                    drive.strafeLeft(150);
                 }
                 else
                 {
-                    drive.strafeLeft(150);
+                    drive.strafeRight(150);
                 }
         
                 break;
