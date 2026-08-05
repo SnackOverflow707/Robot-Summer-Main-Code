@@ -310,12 +310,14 @@ void begin()
     drive.stop();
 }
 
-void start()
+void start(bool skipInitialStrafe)
 {
     resetDetectionFilter();
 
     changeState(
-        AlignState::STRAFE_RIGHT
+        skipInitialStrafe
+            ? AlignState::SEARCH_BACKWARD
+            : AlignState::STRAFE_RIGHT
     );
 }
 

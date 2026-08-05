@@ -31,7 +31,7 @@ static constexpr unsigned long PHASE_TIMEOUT_MS = 10000; //chnging to smt ridicu
 // more reliable at short range than the flow-sensor pose.
 // TODO calibrate speed/time against SOLAR_PANEL_CHECKPOINT_DX via testing.
 static constexpr int HARDCODED_STRAFE_SPEED = 80;
-static constexpr unsigned long HARDCODED_STRAFE_TIME_MS = 1500;
+static constexpr unsigned long HARDCODED_STRAFE_TIME_MS = 2500;
 //static constexpr bool STRAFE_RIGHT = SOLAR_PANEL_CHECKPOINT_DX >= 0.0f; //dx > 0 → target is to the right, dx < 0 → target is to the left
 
 enum class ManualAlignState
@@ -143,6 +143,7 @@ void update()
             if (millis() - phaseStartTime >= HARDCODED_STRAFE_TIME_MS)
             {
                 drive.stop();
+                //drive.driveBackward(30.0, HARDCODED_STRAFE_SPEED); //drive bckwrds 30cm 
                 currentState = ManualAlignState::FINISHED;
                 break;
             }
