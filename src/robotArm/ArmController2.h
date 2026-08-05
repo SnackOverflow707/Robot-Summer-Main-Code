@@ -40,9 +40,9 @@
 #define CLAW_OFFSET 0
 
 //joint speeds 
-#define DEFAULT_OMEGA 75 //in deg/s 
-#define OMEGA_BASE 75
-#define OMEGA_SHOULDER 45   
+#define DEFAULT_OMEGA 90 //in deg/s 
+#define OMEGA_BASE 90
+#define OMEGA_SHOULDER 55   
 #define OMEGA_ELBOW DEFAULT_OMEGA
 #define OMEGA_WRIST DEFAULT_OMEGA
 #define OMEGA_CLAW 100 //in deg/s  

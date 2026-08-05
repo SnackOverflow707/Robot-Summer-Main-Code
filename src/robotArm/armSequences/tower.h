@@ -5,7 +5,7 @@
 #include "../taskManager.h"
 
 #define TOWERS_TO_ATTEMPT 3
-#define TOWER_CLAW_CLOSED 43
+#define TOWER_CLAW_CLOSED 40
 
 //tower positions 
 static const ArmPose PRE_TOWER_1 = {135, 140, 225, 50, 35}; 
@@ -16,6 +16,7 @@ static const ArmPose REACH_TOWER_2 = {161, 194, 184, 13, 35};
 static const ArmPose GRAB_TOWER_2 = {161, 194, 184, 13, TOWER_CLAW_CLOSED}; 
 static const ArmPose REACH_TOWER_3 = {176, 205, 158, 13, 35}; 
 static const ArmPose GRAB_TOWER_3 = {176, 205, 158, 13, TOWER_CLAW_CLOSED}; 
+static const ArmPose HOME = {HOME_BASE, HOME_SHOULDER, HOME_ELBOW, HOME_WRIST, HOME_CLAW}; 
 
 
 const char* moveToPieceOrder[] = {
@@ -95,6 +96,7 @@ void towerSequence(TaskManager& taskManager) {
 
     }
 
+    taskManager.executeMove(HOME); 
     
 }
 
