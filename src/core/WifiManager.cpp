@@ -10,6 +10,7 @@
 #include "robotArm/taskManager.h"
 #include "robotArm/armSequences/solarPanels.h"
 #include "core/states/TowerRam.h"
+#include "core/states/RockMetalCheck.h"
 
 
 WifiManager::WifiManager(
@@ -339,9 +340,41 @@ _server.on("/stateMachine/setState", HTTP_GET, [this]()
 
         json += "\"leftVoltage\":";
         json += String(status.leftVoltage, 3);
+        json += ",\"isMetal\":";
+    json += StateMachine::getIsMetal() ? "true" : "false";
 
         json += ",\"rightVoltage\":";
         json += String(status.rightVoltage, 3);
+        json += ",\"metalBaselineReady\":";
+json += RockMetalCheck::areBaselinesReady()
+    ? "true"
+    : "false";
+
+json += ",\"metalBaseline0\":";
+json += String(RockMetalCheck::getBaseline0(), 2);
+
+json += ",\"metalBaseline1\":";
+json += String(RockMetalCheck::getBaseline1(), 2);
+
+json += ",\"latestMetalCheck\":";
+json += String(RockMetalCheck::getLatestCheckValue(), 2);
+
+json += ",\"latestMetalBaseline\":";
+json += String(RockMetalCheck::getLatestBaselineValue(), 2);
+
+json += ",\"latestMetalChange\":";
+json += String(RockMetalCheck::getLatestChange(), 2);
+
+json += ",\"latestMetalRock\":";
+json += String(RockMetalCheck::getLatestRockIndex());
+
+json += ",\"latestMetalCoil\":";
+json += String(RockMetalCheck::getLatestCoil());
+
+json += ",\"latestMetalFound\":";
+json += RockMetalCheck::metalFound()
+    ? "true"
+    : "false";
 
         json += ",\"leftWhite\":";
         json += (status.leftWhite ? "true" : "false");
@@ -1469,6 +1502,7 @@ void WifiManager::showControlPage()
             <p id="metal0Status" class="value">
                 Waiting...
             </p>
+            <p>Metal detected: <span id="isMetal">NO</span></p>
         </div>
 
         <div class="sensor">
@@ -1488,6 +1522,56 @@ void WifiManager::showControlPage()
                 Waiting...
             </p>
         </div>
+        <div class="status-box">
+    <h3>Metal Detector Status</h3>
+
+    <div>
+        Startup baselines:
+        <span id="metalBaselineStatus">Waiting</span>
+    </div>
+
+    <div>
+        Detector 0 baseline:
+        <span id="metalBaseline0">--</span>
+    </div>
+
+    <div>
+        Detector 1 baseline:
+        <span id="metalBaseline1">--</span>
+    </div>
+
+    <hr>
+
+    <div>
+        Most recent rock:
+        <span id="latestMetalRock">--</span>
+    </div>
+
+    <div>
+        Coil:
+        <span id="latestMetalCoil">--</span>
+    </div>
+
+    <div>
+        Original baseline:
+        <span id="latestMetalBaseline">--</span>
+    </div>
+
+    <div>
+        Most recent check:
+        <span id="latestMetalCheck">--</span>
+    </div>
+
+    <div>
+        Difference:
+        <span id="latestMetalChange">--</span>
+    </div>
+
+    <div>
+        Result:
+        <span id="latestMetalFound">--</span>
+    </div>
+</div>
 
     </div>
 </div>
@@ -1656,6 +1740,8 @@ async function updateStatus()
 
 document.getElementById("poseY").textContent =
     Number(data.poseY).toFixed(3);
+document.getElementById("isMetal").textContent =
+    status.isMetal ? "YES" : "NO";
 
 document.getElementById("poseTheta").textContent =
     Number(data.poseTheta).toFixed(3);
@@ -1670,6 +1756,38 @@ document.getElementById("metal1Hz").textContent =
 
 document.getElementById("metal1AgeMs").textContent =
     data.metal1AgeMs;
+document.getElementById("metalBaselineStatus").textContent =
+    data.metalBaselineReady
+        ? "Ready"
+        : "Collecting samples";
+
+document.getElementById("metalBaseline0").textContent =
+    Number(data.metalBaseline0).toFixed(2) + " Hz";
+
+document.getElementById("metalBaseline1").textContent =
+    Number(data.metalBaseline1).toFixed(2) + " Hz";
+
+document.getElementById("latestMetalRock").textContent =
+    data.latestMetalRock;
+
+document.getElementById("latestMetalCoil").textContent =
+    data.latestMetalCoil === 0
+        ? "0 — left coil"
+        : "1 — right coil";
+
+document.getElementById("latestMetalBaseline").textContent =
+    Number(data.latestMetalBaseline).toFixed(2) + " Hz";
+
+document.getElementById("latestMetalCheck").textContent =
+    Number(data.latestMetalCheck).toFixed(2) + " Hz";
+
+document.getElementById("latestMetalChange").textContent =
+    Number(data.latestMetalChange).toFixed(2) + " Hz";
+
+document.getElementById("latestMetalFound").textContent =
+    data.latestMetalFound
+        ? "METAL"
+        : "No metal";
 
 
 const metal0Status =

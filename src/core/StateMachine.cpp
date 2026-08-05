@@ -4,6 +4,7 @@
 #include "tape_logic/TapeFollower.h"
 #include "tape_logic/SideSensors.h"
 #include "actuators/MecanumDrive.h"
+#include "core/states/RockMetalCheck.h"
 
 
 // Expected mechanism files:
@@ -39,7 +40,7 @@ namespace StateMachine
 
 static constexpr uint16_t MAG1_THRESHOLD = 20000;
 static constexpr uint16_t MAG2_THRESHOLD = 3000;
-static constexpr uint16_t METAL_THRESHOLD = 50;
+static constexpr uint16_t METAL_THRESHOLD = 100;
 static unsigned long courseStartTime = 0;
 
 
@@ -87,6 +88,33 @@ static unsigned long metalCheckHitCount = 0;
 
 static unsigned long lastSideTapeTriggerTime = 0;
 static unsigned long lastReturnTapeTriggerTime = 0;
+static bool isMetal = false;
+
+
+//Metal detector variables 
+static constexpr uint8_t METAL_SAMPLE_COUNT = 5;
+static constexpr unsigned long METAL_SETTLE_TIME_MS = 00;
+
+// Tune this using your measured detector values.
+static constexpr float METAL_CHANGE_THRESHOLD_HZ = 100.0f;
+
+static float metalBaselineSum = 0.0f;
+static float metalBaselineAverage = 0.0f;
+static uint8_t metalBaselineCount = 0;
+static bool metalBaselineReady = false;
+
+static float metalCheckSum = 0.0f;
+static uint8_t metalCheckCount = 0;
+
+// Tune this after looking at the actual frequency changes.
+static float getRockMetalReading(
+    const Inputs& inputs,
+    uint8_t rock
+);
+
+static float metalCheckBaselineHz = 0.0f;
+static float metalCheckMaxChangeHz = 0.0f;
+static bool metalCheckInitialized = false;
 
 // --------------------------------------------------
 // State names and website IDs
@@ -193,17 +221,20 @@ static void changeState(State newState)
             break;
 
         case State::ROCK_APPROACH:
+            metalBaselineSum = 0.0f;
+            metalBaselineAverage = 0.0f;
+            metalBaselineCount = 0;
+            metalBaselineReady = false;
+        
             RockApproach::begin();
-            RockApproach::start(rockIndex);
+            // Do not start strafing until baseline is ready.
             break;
 
         case State::ROCK_METAL_CHECK:
-            drive.stop();
-            delay(500);
-            metalCheckSampleCount = 0;
-            metalCheckHitCount = 0;
+            RockMetalCheck::begin();
+            RockMetalCheck::start(rockIndex);
             break;
-
+            
         case State::ROCK_GRAB:
             RockGrabber::begin();
             RockGrabber::start(rockIndex);
@@ -305,6 +336,7 @@ void begin()
     metalTriggerArmed = true;
     sideTapeArmed = true;
     returnTapeTriggerArmed = true;
+    RockMetalCheck::resetBaselines();
 
     changeState(State::STOPPED);
 }
@@ -337,6 +369,7 @@ void restart()
     metalTriggerArmed = true;
     sideTapeArmed = true;
     returnTapeTriggerArmed = true;
+    RockMetalCheck::resetBaselines();
 
     if (enabled)
     {
@@ -363,6 +396,22 @@ void update(const Inputs& inputs)
     if (!enabled)
     {
         return;
+    }
+    if (!RockMetalCheck::areBaselinesReady())
+    {
+    drive.stop();
+    setTapeFollowing(false);
+
+    RockMetalCheck::updateBaselines(inputs);
+
+    if (RockMetalCheck::areBaselinesReady())
+    {
+        resetTapePID();
+        setTapeBaseSpeed(100);
+        setTapeFollowing(true);
+    }
+
+    return;
     }
 
     const bool irDetected =
@@ -424,88 +473,125 @@ void update(const Inputs& inputs)
         }
         break;}
 
-    case State::ROCK_APPROACH:{
-        RockApproach::update();
-        // keep tape following while waiting for Y position
-        if (RockApproach::isFinished()) {
-            changeState(State::ROCK_METAL_CHECK);
-        } else if (RockApproach::hasFailed()) {
-            changeState(State::ROCK_METAL_CHECK);
+        case State::ROCK_APPROACH:
+        {
+            if (!metalBaselineReady)
+            {
+                const float reading =
+                    getRockMetalReading(inputs, rockIndex);
+        
+                metalBaselineSum += reading;
+                ++metalBaselineCount;
+        
+                Serial.printf(
+                    "Baseline sample %u/5: %.2f Hz\n",
+                    metalBaselineCount,
+                    reading
+                );
+        
+                if (metalBaselineCount >= METAL_SAMPLE_COUNT)
+                {
+                    metalBaselineAverage =
+                        metalBaselineSum /
+                        static_cast<float>(METAL_SAMPLE_COUNT);
+        
+                    metalBaselineReady = true;
+        
+                    Serial.printf(
+                        "Rock %u baseline: %.2f Hz\n",
+                        rockIndex,
+                        metalBaselineAverage
+                    );
+        
+                    // Now begin moving toward the rock.
+                    RockApproach::start(rockIndex);
+                }
+        
+                break;
+            }
+        
+            RockApproach::update();
+        
+            if (
+                RockApproach::isFinished() ||
+                RockApproach::hasFailed()
+            )
+            {
+                changeState(State::ROCK_METAL_CHECK);
+            }
+        
+            break;
         }
-        break;
-    }
 
         case State::ROCK_METAL_CHECK:
         {
-           /* ++metalCheckSampleCount;
-
-            if (metalDetected)
-            {
-                ++metalCheckHitCount;
-            }
-
-            if (getStateElapsedMs() >= METAL_CHECK_WINDOW_MS)
-            {
-                const float hitRatio =
-                    static_cast<float>(metalCheckHitCount) /
-                    static_cast<float>(metalCheckSampleCount); */
-
-                const RockApproach::RockPos& rp = RockApproach::ROCK_POSITIONS[rockIndex];
-
-                bool onTape = false;
-                const unsigned long returnStart = millis();
-
-                if (rp.strafe)
-                {
-                    const unsigned long returnStart = millis();
-                
-                        UART::update();
-                        updateTapeSensors();
-                
-                        const TapeFollowerStatus status =
-                            getTapeFollowerStatus();
-                
-                        onTape =
-                            !status.leftWhite ||
-                            !status.rightWhite;
-                
-                        if (!onTape)
-                        {
-                            if (rp.coil == 0)
-                            {
-                                drive.strafeRight(150);
-                            }
-                            else
-                            {
-                                drive.strafeLeft(150);
-                            }
-                        }
-                        else{
-                            if (rockIndex < NUM_ROCKS - 1)
-                            {
-                                ++rockIndex;
-                                changeState(State::TAPE_FOLLOW_ROCK_CHECK);
-                            }
-                            else {
-                                changeState(State::TAPE_FOLLOW_TO_TOWER);
-                            }   
-                        }
-                }
-                else {
-                    delay(500);
-                    changeState(State::TAPE_FOLLOW_ROCK_CHECK);
-                }
-                break;
-                
-         }
+            RockMetalCheck::update(inputs);
         
+            if (RockMetalCheck::hasFailed())
+            {
+                changeState(State::STOPPED);
+                break;
+            }
+        
+            if (!RockMetalCheck::isFinished())
+            {
+                break;
+            }
+        
+            if (RockMetalCheck::metalFound())
+            {
+                isMetal = true;
+                changeState(State::ROCK_GRAB);
+                break;
+            }
+        
+            const RockApproach::RockPos& rock =
+                RockApproach::ROCK_POSITIONS[rockIndex];
+        
+            updateTapeSensors();
+        
+            const TapeFollowerStatus status =
+                getTapeFollowerStatus();
+        
+            const bool onTape =
+                !status.leftWhite ||
+                !status.rightWhite;
+        
+            if (!onTape)
+            {
+                if (rock.coil == 0)
+                {
+                    drive.strafeRight(150);
+                }
+                else
+                {
+                    drive.strafeLeft(150);
+                }
+        
+                break;
+            }
+        
+            drive.stop();
+        
+            if (rockIndex < NUM_ROCKS - 1)
+            {
+                ++rockIndex;
+                changeState(State::TAPE_FOLLOW_ROCK_CHECK);
+            }
+            else
+            {
+                changeState(State::TAPE_FOLLOW_TO_TOWER);
+            }
+        
+            break;
+        }
 
         case State::ROCK_GRAB:{
             RockGrabber::update();
 
             if (RockGrabber::isFinished() || RockGrabber::hasFailed())
             {
-                changeState(State::TAPE_FOLLOW_ROCK_CHECK);
+                changeState(State::TAPE_FOLLOW_TO_TOWER);
             }
             break;
         }
@@ -728,5 +814,21 @@ bool isSelectedDetected(uint16_t mag1, uint16_t mag2)
 unsigned long getCourseElapsedMs()
 {
     return millis() - courseStartTime;
+}
+static float getRockMetalReading(
+    const Inputs& inputs,
+    uint8_t rock
+)
+{
+    const RockApproach::RockPos& rp =
+        RockApproach::ROCK_POSITIONS[rock];
+
+    return (rp.coil == 0)
+        ? inputs.metalMagnitude1   // left detector
+        : inputs.metalMagnitude0;  // right detector
+}
+bool getIsMetal()
+{
+    return isMetal;
 }
 } // namespace StateMachine

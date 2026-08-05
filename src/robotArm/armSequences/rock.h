@@ -1,116 +1,59 @@
-#ifndef ROCK_H
-#define ROCK_H
+#ifndef ROBOT_ARM_SEQUENCES_ROCK_H
+#define ROBOT_ARM_SEQUENCES_ROCK_H
 
 #include "../ArmController2.h"
 #include "../taskManager.h"
 
-#define CLAW_CLOSED_ROCK 20 //update 
-#define ROCK_MAX_TIME 30*1000 //the max search time we're willing to allot to find the rock 
-
-
-/*I'm rewriting this based on the fact that the chassis should stop with the rock at the same location relative 
-to the arm base each time because we have the positional sensors.*/
-
-static const char* rockPositions[] = {
-    "right", "left", "right", "right", "left", "right"
-}; 
-
-static const char* rockPickupOrder[] = {
-    "base", "claw", "elbow", "shoulder", "wrist" 
+enum class RockSide
+{
+    LEFT,
+    RIGHT
 };
 
-static const ArmPose NEUTRAL = {HOME_BASE, HOME_SHOULDER, HOME_ELBOW, HOME_WRIST, HOME_CLAW}; 
-static const ArmPose ROCK_TO_CHASSIS = {}; //brings the rock to the rock mount on the chassis
-static const ArmPose PLACE_ROCK = {}; //places the rock on the mount. 
-
-static const ArmPose REACH_LEFT = {}; 
-static const ArmPose REACH_RIGHT = {}; 
-static const ArmPose GRAB_LEFT = {}; 
-static const ArmPose GRAB_RIGHT = {}; 
-
-struct rockPoses {
-    ArmPose reach; 
-    ArmPose grab; 
-}; 
-
-static const rockPoses rightRockPoses = {REACH_RIGHT, GRAB_RIGHT}; 
-static const rockPoses leftRockPoses = {REACH_LEFT, GRAB_LEFT}; 
-
-static const std::vector<ArmPose> PLACE_ROCK_ON_CHASSIS = {
-    ROCK_TO_CHASSIS, 
-    PLACE_ROCK, 
-    NEUTRAL 
-}; 
-
-inline void rockReachSequence(TaskManager& taskManager, int rockIndex)
+static constexpr ArmPose LEFT_ROCK_GRAB_OPEN =
 {
-    rockPoses rp; 
-    if (rockPositions[rockIndex] == "right") {
-        rp = rightRockPoses; 
-    } 
-    else {
-        rp = leftRockPoses; 
-    }
+    185, 225, 220, 235, 25
+};
 
-    taskManager.executeMove(rp.reach, rockPickupOrder); 
-    delay(250); //so position can be confirmed before closing 
-    taskManager.executeMove(rp.grab); 
-    delay(400); //so claw can stabilize around rock 
+static constexpr ArmPose LEFT_ROCK_GRAB_CLOSED =
+{
+    185, 225, 220, 235, 15
+};
 
-}
+static constexpr ArmPose RIGHT_ROCK_GRAB_OPEN =
+{
+    85, 225, 220, 235, 25
+};
 
-inline void rockGrabSequence(TaskManager& taskManager) {
-    taskManager.executeSequence(PLACE_ROCK_ON_CHASSIS); 
-}
+static constexpr ArmPose RIGHT_ROCK_GRAB_CLOSED =
+{
+    85, 225, 220, 235, 35
+};
 
+static constexpr ArmPose ROCK_LIFT =
+{
+    130, 70, 235, 35, 35
+};
 
+static constexpr ArmPose ROCK_OVER_POST =
+{
+    135, 185, 0, 130, 35
+};
 
+static constexpr ArmPose ROCK_PLACE =
+{
+    135, 185, 0, 130, 15
+};
 
+static constexpr ArmPose ROCK_RETRACT =
+{
+    130, 70, 235, 35, 25
+};
 
-
-
-//---------------------- Ken's code -----------------------//
-
-
+#endif // ROBOT_ARM_SEQUENCES_ROCK_H
 /*
-#define ROCK_NATTEMPTS 3   // total grip attempts, including the first
-
-struct RockWaypoints
-{
-    ArmPose orient; // face the rock, claw open
-    ArmPose grab;   // reach in, close claw
-};
-
-static const RockWaypoints ROCK_POSITIONS[6] = {
-     {{0, 85, 205, 0, CLAW_OPEN}, {0, 85, 205, 0, CLAW_CLOSED_ROCK }},
-    {{0, 85, 205, 0, CLAW_OPEN}, {0, 85, 205, 0, CLAW_CLOSED_ROCK }},
-   {{0, 85, 205, 0, CLAW_OPEN}, {0, 85, 205, 0, CLAW_CLOSED_ROCK }},
-    {{0, 85, 205, 0, CLAW_OPEN}, {0, 85, 205, 0, CLAW_CLOSED_ROCK }},
-    {{0, 85, 205, 0, CLAW_OPEN}, {0, 85, 205, 0, CLAW_CLOSED_ROCK }},
-     {{0, 85, 205, 0, CLAW_OPEN}, {0, 85, 205, 0, CLAW_CLOSED_ROCK }},
-};
-
-// Shared for every rock - once it's out of the ground, lifting and
-// swinging back over the chassis doesn't depend on which rock it was.
-static const ArmPose RETRACT_ROCK  = {0, 160, 205, 0, true};
-static const ArmPose RECENTER_ROCK = {90, 160, 205, 0, true};
-
-// Reach in and close the claw for a specific rock. Caller checks the grip
-// result before deciding whether to retract (success) or retry/abort.
-inline void rockReachSequence(TaskManager& taskManager, int rockIndex)
-{
-    const RockWaypoints& wp = ROCK_POSITIONS[rockIndex];
-    taskManager.executeMove(wp.orient);
-    taskManager.executeMove(wp.grab);
-}
-
-// Lift out and swing back over the robot body. Only call this once the
-// grip has been confirmed.
-inline void rockRetractSequence(TaskManager& taskManager)
-{
-    taskManager.executeMove(RETRACT_ROCK);
-    taskManager.executeMove(RECENTER_ROCK);
-}
-*/ 
-
-#endif // ROCK_H
+#define HOME_BASE     130
+#define HOME_SHOULDER 70
+#define HOME_ELBOW    235
+#define HOME_WRIST    35
+#define HOME_CLAW      25 */

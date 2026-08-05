@@ -39,8 +39,8 @@ namespace RockApproach
     };
 
     #define STRAFE_SPEED 150
-    #define STRAFE_AMOUNT 10.0f //UPDATE
-    #define Y_TOLERANCE 20.0f //pixels on y (along tape)
+    #define STRAFE_AMOUNT 20.0f //UPDATE
+    #define Y_TOLERANCE 10.0f //pixels on y (along tape)
 
     // States
     enum class Phase {

@@ -11,6 +11,7 @@ namespace RockApproach
     bool isFinished();
     bool hasFailed();
     bool isWaitingForY();
+    
 
     struct RockPos {
         float x;
@@ -20,4 +21,5 @@ namespace RockApproach
     };
 
     extern const RockPos ROCK_POSITIONS[6];
+    const RockPos* getRockPositions();
 }

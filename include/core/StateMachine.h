@@ -102,6 +102,6 @@ bool isSelectedDetected(
     uint16_t mag1,
     uint16_t mag2
 );
-
+bool getIsMetal();
 
 } // namespace StateMachine
