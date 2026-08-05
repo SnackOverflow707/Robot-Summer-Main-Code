@@ -351,7 +351,7 @@ void begin()
     RockMetalCheck::resetBaselines();
     isMetal = false;
 
-    changeState(State::STOPPED);
+    changeState(State::ENDPOINT);
 }
 
 void setEnabled(bool value)

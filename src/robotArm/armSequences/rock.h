@@ -9,7 +9,10 @@ enum class RockSide
     LEFT,
     RIGHT
 };
-
+static constexpr ArmPose PRE_LIFT =
+{
+    130, 175, 220, 225, 25
+};
 static constexpr ArmPose LEFT_ROCK_GRAB_OPEN =
 {
     185, 230, 220, 225, 25

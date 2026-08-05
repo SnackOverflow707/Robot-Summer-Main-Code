@@ -45,7 +45,13 @@ enum class GrabState
     FINISHED,
     FAILED
 };
-
+const char* preMoveOrder[] = {
+    "shoulder",
+    "wrist",
+    "elbow",
+    "base",
+    "claw"
+};
 const char* grabOrder[] = {
     "wrist",
     "elbow",
@@ -186,6 +192,7 @@ drive.stop();
 delay(DRIVE_SETTLE_TIME_MS);
 
 // Reach and close the claw.
+taskManager.executeMove(PRE_LIFT, preMoveOrder);
 if (rockIsRight)
 {
     taskManager.executeMove(RIGHT_ROCK_GRAB_OPEN,grabOrder);
