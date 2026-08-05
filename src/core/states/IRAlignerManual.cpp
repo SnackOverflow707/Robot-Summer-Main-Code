@@ -17,21 +17,19 @@ namespace IRAlignerManual
 static constexpr int TRAVEL_SPEED = 80;
 
 // Maximum allowed final position error on Y, checked against pose feedback.
-// Pose data (UART::PoseData) is in millimeters -- see
-// Sensor_ESP_Arduino/src/main.cpp -- so this must be in mm too.
+// Pose data (UART::PoseData) is in millimeters (sensor_ESP_Arduino/src/main.cpp)
 static constexpr float ARRIVAL_TOLERANCE_MM = 50.0f;
 
 static constexpr uint8_t MAX_INVALID_READINGS = 10;
 static constexpr unsigned long PHASE_TIMEOUT_MS = 10000; //chnging to smt ridiculous for now to debug why its not strafing 
 
-static constexpr int HARDCODED_STRAFE_SPEED = 90;
+static constexpr int HARDCODED_STRAFE_SPEED = 80;
 static constexpr unsigned long HARDCODED_STRAFE_TIME_MS = 2500;
 
 
 enum class ManualAlignState
 {
     IDLE,
-    DRIVING_Y,
     STRAFE_TO_PANEL,
     FINISHED,
     FAILED
@@ -56,16 +54,12 @@ void begin()
 
 void start()
 {
-    if (currentState == ManualAlignState::DRIVING_Y ||
-        currentState == ManualAlignState::STRAFE_TO_PANEL)
-    {
+    if (currentState == ManualAlignState::STRAFE_TO_PANEL) {
         return;
     }
 
     const UART::PoseData startLoc = UART::getPoseData();
-
-    if (!startLoc.valid)
-    {
+    if (!startLoc.valid) {
         drive.stop();
         currentState = ManualAlignState::FAILED;
         return;
@@ -78,78 +72,27 @@ void start()
     phaseStartTime = millis();
     invalidReadingCount = 0;
 
-    currentState = ManualAlignState::DRIVING_Y;
+    currentState = ManualAlignState::STRAFE_TO_PANEL;
 }
 
 void update()
 {
     switch (currentState)
     {
-        case ManualAlignState::DRIVING_Y:
-        {
-            drive.stop(); 
-            currentState = ManualAlignState::STRAFE_TO_PANEL;
-            phaseStartTime = millis();
-            break;
-
-
-            /*
             
-            const UART::PoseData& pose = UART::getPoseData();
-            if (!pose.valid)
-            {
-                ++invalidReadingCount;
-            }
-            else
-            {
-                invalidReadingCount = 0;
-
-                if (fabsf(pose.y - targetY) <= ARRIVAL_TOLERANCE_MM)
-                {
-                    drive.stop();
-                    currentState = ManualAlignState::STRAFE_TO_PANEL;
-                    phaseStartTime = millis();
-                    break;
-                }
-                else if (pose.y < targetY) 
-                {
-                    drive.backward(TRAVEL_SPEED);
-                }
-                else
-                {
-                    drive.forward(TRAVEL_SPEED);
-                }
-            }
-
-            if (invalidReadingCount >= MAX_INVALID_READINGS ||
-                millis() - phaseStartTime >= PHASE_TIMEOUT_MS)
-            {
-                drive.stop();
-                currentState = ManualAlignState::FAILED;
-            }
-
-            break;*/
-        }
-
         case ManualAlignState::STRAFE_TO_PANEL:
         {
+
+            float strafeStartTime = millis();
             // Open-loop: no pose check, just run for a fixed time.
-            if (millis() - phaseStartTime >= HARDCODED_STRAFE_TIME_MS)
+            if (millis() - strafeStartTime >= HARDCODED_STRAFE_TIME_MS)
             {
                 drive.stop();
-                //drive.driveBackward(30.0, HARDCODED_STRAFE_SPEED); //drive bckwrds 30cm 
                 currentState = ManualAlignState::FINISHED;
                 break;
             }
 
-            //if (STRAFE_RIGHT)
-            //{
-                drive.strafeRight(HARDCODED_STRAFE_SPEED);
-            //}
-            //else
-            //{
-                //drive.strafeLeft(HARDCODED_STRAFE_SPEED);
-            //}
+            drive.strafeRight(HARDCODED_STRAFE_SPEED); 
 
             break;
         }
@@ -193,9 +136,6 @@ const char* getStateName()
         case ManualAlignState::IDLE:
             return "Idle";
 
-        case ManualAlignState::DRIVING_Y:
-            return "Driving to Solar Panel (Y)";
-
         case ManualAlignState::STRAFE_TO_PANEL:
             return "Strafing to Solar Panel (X, hardcoded)";
 
@@ -214,14 +154,6 @@ const char* getDebugStatus()
 {
     switch (currentState)
     {
-        case ManualAlignState::DRIVING_Y:
-        {
-            const UART::PoseData& pose = UART::getPoseData();
-            return (pose.y < targetY)
-                ? "Driving backward to checkpoint (Y)"
-                : "Driving forward to checkpoint (Y)";
-        }
-
         case ManualAlignState::STRAFE_TO_PANEL:
             return "Strafing right (hardcoded) to panel (X)";
 
@@ -230,18 +162,13 @@ const char* getDebugStatus()
     }
 }
 
-// used by the website's IR debug box -- a short, unambiguous phase tag so
-// the UI doesn't just say "Manual IR Aligning" (the top-level state name,
-// which doesn't change between the Y and strafe sub-phases) the whole time.
+// used by the website's IR debug box
 const char* getPhaseName()
 {
     switch (currentState)
     {
         case ManualAlignState::IDLE:
             return "idle";
-
-        case ManualAlignState::DRIVING_Y:
-            return "drivingY";
 
         case ManualAlignState::STRAFE_TO_PANEL:
             return "strafingToPanel";

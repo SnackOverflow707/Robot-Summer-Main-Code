@@ -59,8 +59,6 @@ static const std::vector<ArmPose> ALL_TOWERS = {
 };
 
 //repeat positions 
-//static const ArmPose ORIENT = {HOME_BASE, HOME_SHOULDER, HOME_ELBOW, 90, HOME_CLAW};
-//static const ArmPose RETRACT = {160, 120, 180, 60, TOWER_CLAW_CLOSED}; 
 static const ArmPose FUNNEL1 = {0, 95, 210, 70, TOWER_CLAW_CLOSED}; 
 static const ArmPose FUNNEL2 = {0, 95, 230, 70, TOWER_CLAW_CLOSED}; //version 2: 0, 85, 235, 60, open/closed
 static const ArmPose DROP_TOWER = {0, 95, 230, 70, 35};  //save time with 35deg instead of "fully open"
