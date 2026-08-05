@@ -204,6 +204,8 @@ static void stopCurrentOutputs()
 
 static void changeState(State newState)
 {
+    const State previousState = currentState;
+
     stopCurrentOutputs();
 
     currentState = newState;
@@ -271,10 +273,20 @@ static void changeState(State newState)
             break;
 
         case State::IR_ALIGNING:
+        {
+            // Coming from MANUAL_IR_ALIGNING means IRAlignerManual already
+            // drove Y and hardcode-strafed onto the panel -- skip IRAligner's
+            // own initial strafe and go straight to the backward/forward
+            // peak search. Coming straight from SLOW_TAPE_FOLLOWING (IR
+            // detected mid-tape-follow) means no strafe has happened yet,
+            // so keep the normal strafe-then-search sequence.
+            const bool skipInitialStrafe =
+                (previousState == State::MANUAL_IR_ALIGNING);
 
             IRAligner::begin();
-            IRAligner::start();
+            IRAligner::start(skipInitialStrafe);
             break;
+        }
 
         case State::MANUAL_IR_ALIGNING:
             IRAlignerManual::begin();
@@ -703,7 +715,14 @@ void update(const Inputs& inputs)
 
             if (IRAlignerManual::isFinished())
             {
-                changeState(State::RIP_SOLAR_PANEL);
+                // IRAlignerManual only gets the robot roughly onto the
+                // panel (Y drive + hardcoded strafe) -- hand off to the
+                // IR-sensor-driven aligner for accurate close-range
+                // positioning instead of going straight to the ripper.
+
+
+                changeState(State::IR_ALIGNING);
+                drive.stop(); 
             }
             else if (IRAlignerManual::hasFailed())
             {

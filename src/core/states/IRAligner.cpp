@@ -39,11 +39,11 @@ static constexpr unsigned long UART_TIMEOUT_MS = 250;
 
 // Final detection thresholds
 static constexpr uint16_t MAG1_FOUND_THRESHOLD = 20000;
-static constexpr uint16_t MAG2_FOUND_THRESHOLD = 3000;
+static constexpr uint16_t MAG2_FOUND_THRESHOLD = 9000;
 
 // Slow down when the signal reaches these values
 static constexpr uint16_t MAG1_NEAR_THRESHOLD = 18000;
-static constexpr uint16_t MAG2_NEAR_THRESHOLD = 2500;
+static constexpr uint16_t MAG2_NEAR_THRESHOLD = 7000;
 
 // Number of consecutive readings needed to confirm detection
 static constexpr uint8_t REQUIRED_FOUND_SAMPLES = 4;
@@ -310,12 +310,14 @@ void begin()
     drive.stop();
 }
 
-void start()
+void start(bool skipInitialStrafe)
 {
     resetDetectionFilter();
 
     changeState(
-        AlignState::STRAFE_RIGHT
+        skipInitialStrafe
+            ? AlignState::SEARCH_BACKWARD
+            : AlignState::STRAFE_RIGHT
     );
 }
 

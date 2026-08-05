@@ -5,7 +5,7 @@
 #include "../taskManager.h"
 
 #define TOWERS_TO_ATTEMPT 3
-#define TOWER_CLAW_CLOSED 43
+#define TOWER_CLAW_CLOSED 40
 
 //tower positions 
 static const ArmPose PRE_TOWER_1 = {135, 140, 225, 50, 35}; 
@@ -16,6 +16,7 @@ static const ArmPose REACH_TOWER_2 = {161, 194, 184, 13, 35};
 static const ArmPose GRAB_TOWER_2 = {161, 194, 184, 13, TOWER_CLAW_CLOSED}; 
 static const ArmPose REACH_TOWER_3 = {176, 205, 158, 13, 35}; 
 static const ArmPose GRAB_TOWER_3 = {176, 205, 158, 13, TOWER_CLAW_CLOSED}; 
+static const ArmPose HOME = {HOME_BASE, HOME_SHOULDER, HOME_ELBOW, HOME_WRIST, HOME_CLAW}; 
 
 
 const char* moveToPieceOrder[] = {
@@ -58,8 +59,6 @@ static const std::vector<ArmPose> ALL_TOWERS = {
 };
 
 //repeat positions 
-//static const ArmPose ORIENT = {HOME_BASE, HOME_SHOULDER, HOME_ELBOW, 90, HOME_CLAW};
-//static const ArmPose RETRACT = {160, 120, 180, 60, TOWER_CLAW_CLOSED}; 
 static const ArmPose FUNNEL1 = {0, 95, 210, 70, TOWER_CLAW_CLOSED}; 
 static const ArmPose FUNNEL2 = {0, 95, 230, 70, TOWER_CLAW_CLOSED}; //version 2: 0, 85, 235, 60, open/closed
 static const ArmPose DROP_TOWER = {0, 95, 230, 70, 35};  //save time with 35deg instead of "fully open"
@@ -95,6 +94,7 @@ void towerSequence(TaskManager& taskManager) {
 
     }
 
+    taskManager.executeMove(HOME); 
     
 }
 
