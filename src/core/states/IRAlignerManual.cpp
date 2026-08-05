@@ -24,15 +24,9 @@ static constexpr float ARRIVAL_TOLERANCE_MM = 50.0f;
 static constexpr uint8_t MAX_INVALID_READINGS = 10;
 static constexpr unsigned long PHASE_TIMEOUT_MS = 10000; //chnging to smt ridiculous for now to debug why its not strafing 
 
-// Open-loop strafe toward the panel once Y is aligned -- deliberately not
-// pose-feedback-driven. This module's job is just to get roughly onto the
-// panel's IR beacon; IRAligner (entered once this module finishes) does
-// the accurate close-range positioning off the IR signal itself, which is
-// more reliable at short range than the flow-sensor pose.
-// TODO calibrate speed/time against SOLAR_PANEL_CHECKPOINT_DX via testing.
-static constexpr int HARDCODED_STRAFE_SPEED = 80;
+static constexpr int HARDCODED_STRAFE_SPEED = 90;
 static constexpr unsigned long HARDCODED_STRAFE_TIME_MS = 2500;
-//static constexpr bool STRAFE_RIGHT = SOLAR_PANEL_CHECKPOINT_DX >= 0.0f; //dx > 0 → target is to the right, dx < 0 → target is to the left
+
 
 enum class ManualAlignState
 {
