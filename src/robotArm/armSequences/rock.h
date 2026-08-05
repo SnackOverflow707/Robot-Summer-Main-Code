@@ -12,32 +12,33 @@ enum class RockSide
 
 static constexpr ArmPose LEFT_ROCK_GRAB_OPEN =
 {
-    185, 230, 220, 235, 25
+    185, 230, 220, 225, 25
 };
 
 static constexpr ArmPose LEFT_ROCK_GRAB_CLOSED =
 {
-    185, 230, 220, 235, 40
+    185, 230, 220, 225, 40
 };
 
 static constexpr ArmPose RIGHT_ROCK_GRAB_OPEN =
 {
-    85, 230, 220, 235, 25
+    85, 230, 220, 225, 25
 };
 
 static constexpr ArmPose RIGHT_ROCK_GRAB_CLOSED =
 {
-    85, 230, 220, 235, 40
+    85, 230, 220, 225, 40
 };
+
 
 static constexpr ArmPose ROCK_OVER_POST =
 {
-    135, 185, 0, 130, 40
+    130, 175, 25, 140, 40
 };
 
 static constexpr ArmPose ROCK_PLACE =
 {
-    135, 185, 0, 130, 25
+    130, 175, 25, 140, 25
 };
 
 static constexpr ArmPose ROCK_RETRACT =
