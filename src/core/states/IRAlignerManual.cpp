@@ -14,17 +14,21 @@ namespace IRAlignerManual
 {
 
 // Speed used while driving toward the target Y position.
-static constexpr int TRAVEL_SPEED = 80;
+static constexpr int TRAVEL_SPEED = 100;
 
 // Maximum allowed final position error on Y, checked against pose feedback.
 // Pose data (UART::PoseData) is in millimeters (sensor_ESP_Arduino/src/main.cpp)
 static constexpr float ARRIVAL_TOLERANCE_MM = 50.0f;
 
 static constexpr uint8_t MAX_INVALID_READINGS = 10;
-static constexpr unsigned long PHASE_TIMEOUT_MS = 10000; //chnging to smt ridiculous for now to debug why its not strafing 
+static constexpr unsigned long PHASE_TIMEOUT_MS = 10000; 
 
-static constexpr int HARDCODED_STRAFE_SPEED = 80;
-static constexpr unsigned long HARDCODED_STRAFE_TIME_MS = 2500;
+//static constexpr int HARDCODED_STRAFE_SPEED = 80;
+//static constexpr unsigned long HARDCODED_STRAFE_TIME_MS = 2500;
+
+//speed up attempt? Assume linear relationship 
+static constexpr int HARDCODED_STRAFE_SPEED = 100;
+static constexpr unsigned long HARDCODED_STRAFE_TIME_MS = 2000;
 
 
 enum class ManualAlignState
@@ -82,10 +86,8 @@ void update()
             
         case ManualAlignState::STRAFE_TO_PANEL:
         {
-
-            float strafeStartTime = millis();
             // Open-loop: no pose check, just run for a fixed time.
-            if (millis() - strafeStartTime >= HARDCODED_STRAFE_TIME_MS)
+            if (millis() - phaseStartTime >= HARDCODED_STRAFE_TIME_MS)
             {
                 drive.stop();
                 currentState = ManualAlignState::FINISHED;

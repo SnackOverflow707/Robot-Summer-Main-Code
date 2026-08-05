@@ -14,16 +14,15 @@ extern MecanumDrive drive;
 namespace SlowTapeFollowing
 {
 
-static constexpr int TAPE_SPEED = 60;
+static constexpr int TAPE_SPEED = 80;
 
-static constexpr uint16_t MAG1_THRESHOLD = 20000;
+static constexpr uint16_t MAG1_THRESHOLD = 10000; //testing 
 static constexpr uint16_t MAG2_THRESHOLD = 3000;
 
 static constexpr int SENSOR_SELECT_PIN = 11;
 
 // give up if neither IR nor the panel-distance trigger fires in time -- FAILED used to be unreachable
 static constexpr unsigned long MAX_SEARCH_TIME_MS = 15000;
-static const float STRAFE_RIGHT_HARDCODED_DIST = 400.000f; 
 
 // --------------------------------------------------
 // Internal state
@@ -202,7 +201,6 @@ void update()
             // FIX: same problem as IR_DETECTED -- collapsing to FINISHED here meant the caller
             // could never tell it needed to launch the manual fallback instead
 
-            //drive.strafeRightWithDist(STRAFE_RIGHT_HARDCODED_DIST, TAPE_SPEED); 
             break;
         }
 
