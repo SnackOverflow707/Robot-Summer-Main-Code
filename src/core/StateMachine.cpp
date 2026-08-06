@@ -377,6 +377,7 @@ void restart()
 {
     sideTapeSightings= 0;
     rockIndex = 0;
+    courseStartTime = millis();
 
     irTriggerArmed = true;
     metalTriggerArmed = true;

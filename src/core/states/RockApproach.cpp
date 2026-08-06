@@ -10,15 +10,14 @@ namespace RockApproach
 {
 
         
-const RockPos ROCK_POSITIONS[6] = {
-    {  40.1208f,  -723.5691f, 1, true  },
-    { -64.6298f, -1183.8174f, 0, true  },
-    { 117.5088f, -1704.1790f, 1, false },
-    { 462.3132f, -2360.1294f, 1, false },
-    { 610.5424f, -4324.3765f, 0, false },
-    { 327.8498f, -4615.5718f, 1, true  }
-};
-
+    const RockPos ROCK_POSITIONS[6] = {
+        {  55.7328f,  -664.2605f, 1, true  },  // Rock 1
+        { -19.4728f, -1226.4563f, 0, true  },  // Rock 2
+        {  89.8105f, -1545.8289f, 1, false },  // Rock 3
+        { 335.1521f, -2003.6941f, 1, false },  // Rock 4
+        { 354.2891f, -3593.1648f, 0, false },  // Rock 5
+        { 252.7281f, -3808.1218f, 1, true  }   // Rock 6
+    };
     struct ScanPos {
         float x;
         float y;
