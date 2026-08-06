@@ -78,9 +78,56 @@ const char* centreOrder[] = {
 
 static GrabState currentState = GrabState::IDLE;
 
+// Set right before the placement sequence below, and read by
+// driveTowardTapeStep() -- a plain function pointer (TaskManager's
+// per-joint callback) can't capture it.
+static bool correctionRockIsRight = false;
+
 // --------------------------------------------------
 // Helpers
 // --------------------------------------------------
+
+// One correction tick: while off the tape, keep strafing back toward it;
+// once found, hand off to the real tape-follow PID. Passed as
+// TaskManager's per-joint callback so this runs *during* the placement
+// arm sequence -- drive.strafe*() is fire-and-forget PWM, so the wheels
+// keep moving through the arm's blocking delay()s -- instead of only
+// starting after the whole arm sequence finishes.
+static void driveTowardTapeStep()
+{
+    updateTapeSensors();
+
+    if (isTapeFollowingEnabled())
+    {
+        tapeFollowStep();
+        return;
+    }
+
+    const TapeFollowerStatus status = getTapeFollowerStatus();
+
+    const bool onTape =
+        !status.leftWhite ||
+        !status.rightWhite;
+
+    if (onTape)
+    {
+        resetTapePID();
+        setTapeBaseSpeed(80);
+        setTapeFollowing(true);
+        return;
+    }
+
+    if (correctionRockIsRight)
+    {
+        // We moved left to grab the rock, so move right to return.
+        drive.strafeRight(150);
+    }
+    else
+    {
+        // We moved right to grab the rock, so move left to return.
+        drive.strafeLeft(150);
+    }
+}
 
 static int clampRockIndex(int rockIndex)
 {
@@ -204,64 +251,29 @@ else
     taskManager.executeMove(LEFT_ROCK_GRAB_CLOSED);
 }
 
-// Every rock but the last: start driving back toward the tape now.
-// setSpeed() is fire-and-forget PWM -- the wheels keep spinning through
-// the arm's blocking delay()s below, so this overlaps the return-to-tape
-// strafe with placing the rock instead of waiting until the arm is done.
-if (rockIndex != 5)
-{
-    if (rockIsRight)
-    {
-        drive.strafeRight(150);
-    }
-    else
-    {
-        drive.strafeLeft(150);
-    }
-}
+// Lift and place the rock, navigating back onto the tape (and starting
+// to tape-follow once found) after every joint move via the callback
+// above, instead of waiting until the arm is done to start moving.
+correctionRockIsRight = rockIsRight;
 
-// Lift and place the rock.
-taskManager.executeMove(ROCK_OVER_POST, putInBinOrder );
-taskManager.executeMove(ROCK_PLACE);
+taskManager.executeMove(ROCK_OVER_POST, putInBinOrder, driveTowardTapeStep);
+taskManager.executeMove(ROCK_PLACE, driveTowardTapeStep);
 
 arm.openClaw();
 delay(400);
+driveTowardTapeStep();
 
-taskManager.executeMove(ROCK_RETRACT,  centreOrder);
+taskManager.executeMove(ROCK_RETRACT, centreOrder, driveTowardTapeStep);
 
-// Strafe back toward the tape (already moving for every rock but the last).
-while (true)
+// Keep converging until the drivetrain is actually locked onto the tape
+// and following it (the arm sequence above is usually enough on its own,
+// this just covers the case where it isn't yet).
+while (!isTapeFollowingEnabled())
 {
-    updateTapeSensors();
-
-    const TapeFollowerStatus status = getTapeFollowerStatus();
-
-    const bool onTape =
-        !status.leftWhite ||
-        !status.rightWhite;
-
-    if (onTape)
-    {
-        break;
-    }
-
-    if (rockIsRight)
-    {
-        // We moved left to grab the rock,
-        // so move right to return.
-        drive.strafeRight(150);
-    }
-    else
-    {
-        // We moved right to grab the rock,
-        // so move left to return.
-        drive.strafeLeft(150);
-    }
-
+    driveTowardTapeStep();
     delay(10);
 }
 
-drive.stop();
 currentState = GrabState::FINISHED;
 }
 
