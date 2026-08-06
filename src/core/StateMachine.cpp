@@ -50,11 +50,11 @@ static constexpr unsigned long METAL_CHECK_WINDOW_MS = 300;
 // to count as a real hit. Filters out a single noisy blip.
 static constexpr float METAL_CHECK_CONFIRM_RATIO = 0.6f;
 
-static constexpr uint8_t NUM_ROCKS_TO_CHECK = 3;
+static constexpr uint8_t NUM_ROCKS_TO_CHECK = 1;
 static constexpr uint8_t LAST_ROCK_INDEX = NUM_ROCKS_TO_CHECK - 1;
 
-static constexpr int UP_RAMP_TAPE_SPEED = 190;
-static constexpr unsigned long UP_RAMP_TIME_MS = 8000;
+static constexpr int UP_RAMP_TAPE_SPEED = 170;
+static constexpr unsigned long UP_RAMP_TIME_MS = 15000;
 
 
 
@@ -225,6 +225,7 @@ static void changeState(State newState)
             resetTapePID();
             setTapeBaseSpeed(160);
             setTapeFollowing(true);
+            RockMetalCheck::resetBaselines();
             break;
 
         case State::ROCK_APPROACH:

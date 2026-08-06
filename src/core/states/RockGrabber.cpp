@@ -214,8 +214,6 @@ taskManager.executeMove(ROCK_PLACE);
 // Not arm.openClaw() -- that swings all the way to the servo's
 // mechanical minimum. 25 matches the "open" angle already used by
 // ROCK_PLACE/ROCK_RETRACT/*_ROCK_GRAB_OPEN in this same sequence.
-arm.setClaw(25);
-delay(400);
 
 taskManager.executeMove(ROCK_RETRACT,  centreOrder);
 
@@ -247,7 +245,6 @@ while (true)
         // so move left to return.
         drive.strafeLeft(150);
     }
-
     delay(10);
 }
 
