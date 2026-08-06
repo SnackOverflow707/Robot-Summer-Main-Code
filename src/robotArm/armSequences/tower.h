@@ -48,6 +48,14 @@ const char* liftTower1Order[] {
     "elbow", "wrist", "base", "shoulder", "claw"
 }; 
 
+const char* preTowerOrder[] = {
+    "base",
+    "wrist",
+    "elbow",
+    "shoulder",
+    "claw"
+};
+
 //all tower positions 
 //repeat sequence
 static const std::vector<ArmPose> ALL_TOWERS = {
@@ -77,7 +85,7 @@ void towerSequence(TaskManager& taskManager) {
 
     for (int step = 0; step < 2*TOWERS_TO_ATTEMPT; step+=2) {
         if (step == 0) {
-            taskManager.executeMove(PRE_TOWER_1, pickupOrder); //Stops gettiung caught on the gimble 
+            taskManager.executeMove(PRE_TOWER_1, preTowerOrder); //Stops gettiung caught on the gimble 
         }
 
         taskManager.executeMove(ALL_TOWERS[step], moveToPieceOrder); //reach the tower
