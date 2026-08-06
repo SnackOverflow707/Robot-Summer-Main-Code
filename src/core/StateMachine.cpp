@@ -282,6 +282,8 @@ static void changeState(State newState)
             resetTapePID();
             setTapeBaseSpeed(100);
             setTapeFollowing(true);
+            sideTapeSightings = 0;
+            sideTapeArmed = true;
             SlowTapeFollowing::begin();
             SlowTapeFollowing::start();
             break;
@@ -296,8 +298,6 @@ static void changeState(State newState)
             // so keep the normal strafe-then-search sequence.
             const bool skipInitialStrafe =
                 (previousState == State::MANUAL_IR_ALIGNING);
-            sideTapeSightings = 0;
-            sideTapeArmed = true;
             IRAligner::begin();
             IRAligner::start(skipInitialStrafe);
             break;
