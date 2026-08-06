@@ -136,6 +136,7 @@ const char* getStateName(State state)
         case State::IR_ALIGNING:         return "IR Tune Backward";
         case State::MANUAL_IR_ALIGNING:       return "Manual IR Aligning";
         case State::RIP_SOLAR_PANEL:          return "Rip Solar Panel";
+        case State::RIP_SOLAR_PANEL_FALLBACK: return "Rip Solar Panel (Fallback)";
         case State::ENDPOINT:                 return "Endpoint";
         case State::STOPPED:                  return "Stopped";
         default:                              return "Unknown";
@@ -163,6 +164,7 @@ const char* getStateId(State state)
         case State::IR_ALIGNING:              return "ir-aligning";
         case State::MANUAL_IR_ALIGNING:       return "manual-ir-aligning";
         case State::RIP_SOLAR_PANEL:          return "rip-panel";
+        case State::RIP_SOLAR_PANEL_FALLBACK: return "rip-panel-fallback";
         case State::ENDPOINT:                 return "endpoint";
         case State::STOPPED:                  return "stopped";
         default:                              return "unknown";
@@ -296,6 +298,11 @@ static void changeState(State newState)
         case State::RIP_SOLAR_PANEL:
             SolarPanelRipper::begin();
             SolarPanelRipper::start();
+            break;
+
+        case State::RIP_SOLAR_PANEL_FALLBACK:
+            SolarPanelRipper::begin();
+            SolarPanelRipper::startFallback();
             break;
 
         case State::ENDPOINT:
@@ -706,7 +713,10 @@ void update(const Inputs& inputs)
             }
             else if (IRAligner::hasFailed())
             {
-                changeState(State::STOPPED);
+                // Never found the beacon precisely -- the robot is not
+                // in the normal aligned position, so run the fallback
+                // grab sequence instead of just stopping.
+                changeState(State::RIP_SOLAR_PANEL_FALLBACK);
             }
             break;
 
@@ -733,6 +743,7 @@ void update(const Inputs& inputs)
             break;
 
         case State::RIP_SOLAR_PANEL:
+        case State::RIP_SOLAR_PANEL_FALLBACK:
            SolarPanelRipper::update();
 
             if (SolarPanelRipper::isFinished())
@@ -745,7 +756,6 @@ void update(const Inputs& inputs)
             }
 
         break;
-            break;
 
         case State::ENDPOINT:
         case State::STOPPED:
@@ -789,6 +799,7 @@ bool requestStateById(const String& stateId)
     if (stateId == "ir-aligning")          return requestState(State::IR_ALIGNING);
     if (stateId == "manual-ir-aligning") return requestState(State::MANUAL_IR_ALIGNING);
     if (stateId == "rip-panel")          return requestState(State::RIP_SOLAR_PANEL);
+    if (stateId == "rip-panel-fallback") return requestState(State::RIP_SOLAR_PANEL_FALLBACK);
     if (stateId == "endpoint")           return requestState(State::ENDPOINT);
     if (stateId == "stopped")            return requestState(State::STOPPED);
 

@@ -41,6 +41,21 @@ void start()
     currentState = RipperState::FINISHED;
 }
 
+void startFallback()
+{
+    if (currentState == RipperState::RUNNING)
+    {
+        return;
+    }
+
+    currentState = RipperState::RUNNING;
+
+    // This currently runs the entire arm sequence before returning.
+    solarPanelFallbackSequence_1KHz(taskManager);
+
+    currentState = RipperState::FINISHED;
+}
+
 void update()
 {
     // Nothing is required here while solarPanelSequence() is blocking.
