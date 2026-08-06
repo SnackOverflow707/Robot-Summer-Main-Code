@@ -186,8 +186,20 @@ static void finishRockTask(void* pvParameters)
     const bool rockIsRight = params->rockIsRight;
     delete params;
 
-    // Lift and place the rock.
-    taskManager.executeMove(ROCK_OVER_POST, putInBinOrder);
+    // Shoulder was already raised synchronously in start(), before this
+    // task was spawned -- finish the rest of ROCK_OVER_POST here, in the
+    // same relative order putInBinOrder would have used for them
+    // (shoulder, base, wrist+elbow together, claw).
+    arm.setBase(ROCK_OVER_POST.baseAngle);
+    delay(100);
+
+    arm.setElbowWrist(ROCK_OVER_POST.elbowAngle, ROCK_OVER_POST.wristAngle);
+    delay(100);
+
+    arm.setClaw(ROCK_OVER_POST.clawAngle);
+    delay(100);
+
+    // Place the rock.
     taskManager.executeMove(ROCK_PLACE);
 
     arm.openClaw();
@@ -270,10 +282,17 @@ void start(int rockIndex, bool isLastRock)
     }
     else
     {
-        // FIX: everything except the last rock hands the lift/place/
-        // retract sequence off to a background task right after the claw
-        // closes, so the strafe-back-to-tape below (and the state
-        // transition that follows it) doesn't wait on the arm.
+        // Raise the shoulder (lift the rock off the ground) synchronously
+        // before anything else proceeds -- letting the background task
+        // or the drive start while the arm is still down risks dragging
+        // the rock, or catching the claw, along the ground.
+        arm.setShoulder(ROCK_OVER_POST.shoulderAngle);
+        delay(100);
+
+        // FIX: everything except the last rock hands the rest of the
+        // lift/place/retract sequence off to a background task once the
+        // shoulder is up, so the strafe-back-to-tape below (and the
+        // state transition that follows it) doesn't wait on the arm.
         RockFinishParams* params = new RockFinishParams{rockIsRight};
 
         armTaskRunning = true;
