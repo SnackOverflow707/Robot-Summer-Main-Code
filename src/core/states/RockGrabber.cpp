@@ -200,8 +200,24 @@ if (rockIsRight)
 }
 else
 {
-    taskManager.executeMove(LEFT_ROCK_GRAB_OPEN ,grabOrder);
+    taskManager.executeMove(LEFT_ROCK_GRAB_OPEN,grabOrder);
     taskManager.executeMove(LEFT_ROCK_GRAB_CLOSED);
+}
+
+// Every rock but the last: start driving back toward the tape now.
+// setSpeed() is fire-and-forget PWM -- the wheels keep spinning through
+// the arm's blocking delay()s below, so this overlaps the return-to-tape
+// strafe with placing the rock instead of waiting until the arm is done.
+if (rockIndex != 5)
+{
+    if (rockIsRight)
+    {
+        drive.strafeRight(150);
+    }
+    else
+    {
+        drive.strafeLeft(150);
+    }
 }
 
 // Lift and place the rock.
@@ -213,7 +229,7 @@ delay(400);
 
 taskManager.executeMove(ROCK_RETRACT,  centreOrder);
 
-// Strafe back toward the tape.
+// Strafe back toward the tape (already moving for every rock but the last).
 while (true)
 {
     updateTapeSensors();
