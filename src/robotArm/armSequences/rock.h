@@ -36,12 +36,12 @@ static constexpr ArmPose RIGHT_ROCK_GRAB_CLOSED =
 
 static constexpr ArmPose ROCK_OVER_POST =
 {
-    130, 175, 25, 140, 40
+    130, 165, 15, 140, 40
 };
 
 static constexpr ArmPose ROCK_PLACE =
 {
-    130, 175, 25, 140, 25
+    130, 165, 15, 140, 25
 };
 
 static constexpr ArmPose ROCK_RETRACT =

@@ -578,7 +578,7 @@ void update(const Inputs& inputs)
         
             if (!onTape)
             {
-                if (rock.coil == 1 || rockIndex == 3)
+                if (rock.coil == 1 || rockIndex == 3 || rockIndex ==2)
                 {
                     drive.strafeLeft(150);
                 }
