@@ -56,7 +56,7 @@ static constexpr uint8_t NUM_ROCKS_TO_CHECK = 3;
 static constexpr uint8_t LAST_ROCK_INDEX = NUM_ROCKS_TO_CHECK - 1;
 
 static constexpr int UP_RAMP_TAPE_SPEED = 190;
-static constexpr unsigned long UP_RAMP_TIME_MS = 3000;
+static constexpr unsigned long UP_RAMP_TIME_MS = 8000;
 
 
 
@@ -296,7 +296,8 @@ static void changeState(State newState)
             // so keep the normal strafe-then-search sequence.
             const bool skipInitialStrafe =
                 (previousState == State::MANUAL_IR_ALIGNING);
-
+            sideTapeSightings = 0;
+            sideTapeArmed = true;
             IRAligner::begin();
             IRAligner::start(skipInitialStrafe);
             break;

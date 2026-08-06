@@ -25,14 +25,16 @@ void setup()
     arm.begin();
     UART::begin();
     TowerRam::begin();
-
-    StateMachine::begin();
-
     pinMode(14, INPUT);
     pinMode(13, INPUT);
 
     wifi.begin();
     wifi.enable();
+    
+    delay(1000);
+
+    StateMachine::begin();
+    StateMachine::setEnabled(true);
 }
 
 void loop()
