@@ -41,12 +41,12 @@ static constexpr ArmPose ROCK_OVER_POST =
 
 static constexpr ArmPose ROCK_PLACE =
 {
-    130, 165, 15, 140, 35
+    130, 165, 15, 140, 30
 };
 
 static constexpr ArmPose ROCK_RETRACT =
 {
-    130, 70, 235, 35, 35
+    130, 70, 235, 35, 30
 };
 
 #endif // ROBOT_ARM_SEQUENCES_ROCK_H

@@ -17,7 +17,7 @@ namespace SlowTapeFollowing
 static constexpr int TAPE_SPEED = 80;
 
 static constexpr uint16_t MAG1_THRESHOLD = 20000;
-static constexpr uint16_t MAG2_THRESHOLD = 3000;
+static constexpr uint16_t MAG2_THRESHOLD = 8000;
 
 static constexpr int SENSOR_SELECT_PIN = 11;
 
@@ -153,7 +153,10 @@ void update()
             const UART::Data& uartData = UART::getData();
 
             //IR doesn't depend on the flow pose, so check it even if position data is temporarily invalid.
-            if (isIRDetected(uartData.mag1, uartData.mag2)) {
+            if (
+                sideTapesPassed &&
+                isIRDetected(uartData.mag1, uartData.mag2)
+            ){
                 drive.stop(); // FIX: nothing stopped the motors here before -- tapeFollowStep() just stops being called, the last commanded speed keeps running
                 currentState = SlowTapeFollowState::IR_DETECTED;
                 break;
