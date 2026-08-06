@@ -241,7 +241,7 @@ static void changeState(State newState)
             
         case State::ROCK_GRAB:
             RockGrabber::begin();
-            RockGrabber::start(rockIndex);
+            RockGrabber::start(rockIndex, rockIndex == NUM_ROCKS - 1);
             break;
 
 
