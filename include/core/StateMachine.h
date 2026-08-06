@@ -18,6 +18,7 @@ enum class State
 
     ROCK_METAL_CHECK,
     ROCK_GRAB,
+    TAPE_FOLLOW_UP_RAMP,
     TAPE_FOLLOW_TO_TOWER,
     TOWER_RAM,
     TOWER_BUILD,

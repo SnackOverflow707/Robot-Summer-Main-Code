@@ -52,8 +52,11 @@ static constexpr unsigned long METAL_CHECK_WINDOW_MS = 300;
 // to count as a real hit. Filters out a single noisy blip.
 static constexpr float METAL_CHECK_CONFIRM_RATIO = 0.6f;
 
-static constexpr uint8_t NUM_ROCKS = 6;
+static constexpr uint8_t NUM_ROCKS_TO_CHECK = 3;
+static constexpr uint8_t LAST_ROCK_INDEX = NUM_ROCKS_TO_CHECK - 1;
 
+static constexpr int UP_RAMP_TAPE_SPEED = 190;
+static constexpr unsigned long UP_RAMP_TIME_MS = 3000;
 
 
 
@@ -128,6 +131,7 @@ const char* getStateName(State state)
         case State::ROCK_APPROACH:            return "Rock Approach";
         case State::ROCK_METAL_CHECK:         return "Rock Metal Check";
         case State::ROCK_GRAB:                return "Rock Grab";
+        case State::TAPE_FOLLOW_UP_RAMP:   return "Tape follow up ramp";
         case State::TAPE_FOLLOW_TO_TOWER:     return "Tape Follow to Tower";
         case State::TOWER_RAM:                return "Tower Ram";
         case State::TOWER_BUILD:              return "Tower Build";
@@ -156,6 +160,7 @@ const char* getStateId(State state)
         case State::ROCK_APPROACH:            return "rock-approach";
         case State::ROCK_METAL_CHECK:         return "rock-metal-check";
         case State::ROCK_GRAB:                return "rock-grab";
+        case State::TAPE_FOLLOW_UP_RAMP:      return "tape-up-ramp";
         case State::TAPE_FOLLOW_TO_TOWER:     return "tape-to-tower";
         case State::TOWER_RAM:                return "tower-ram";
         case State::TOWER_BUILD:              return "tower-build";
@@ -241,13 +246,18 @@ static void changeState(State newState)
             
         case State::ROCK_GRAB:
             RockGrabber::begin();
-            RockGrabber::start(rockIndex, rockIndex == NUM_ROCKS - 1);
+            RockGrabber::start(rockIndex, rockIndex == NUM_ROCKS_TO_CHECK - 1);
+            break;
+        case State::TAPE_FOLLOW_UP_RAMP:
+            resetTapePID();
+            setTapeBaseSpeed(UP_RAMP_TAPE_SPEED);
+            setTapeFollowing(true);
             break;
 
 
         case State::TAPE_FOLLOW_TO_TOWER:
             resetTapePID();
-            setTapeBaseSpeed(160);
+            setTapeBaseSpeed(120);
             setTapeFollowing(true);
             sideTapeSightings = 0;
             sideTapeArmed = true;
@@ -486,7 +496,7 @@ void update(const Inputs& inputs)
         {
             auto pose = UART::getPoseData();
             if (pose.valid) {
-                for (uint8_t i = rockIndex; i < NUM_ROCKS; i++) {
+                for (uint8_t i = rockIndex; i < NUM_ROCKS_TO_CHECK; i++) {
                     float dy = fabsf(pose.y - RockApproach::ROCK_POSITIONS[i].y);
                     if (dy < 20.0f) {
                         rockIndex = i;
@@ -563,10 +573,8 @@ void update(const Inputs& inputs)
                 break;
             }
         
-            const bool isLastRock = rockIndex == NUM_ROCKS - 1;
-
-            const bool shouldGrab = RockMetalCheck::metalFound() || (isLastRock && !isMetal);
-
+            const bool isFinalCheckedRock =rockIndex == LAST_ROCK_INDEX;
+            const bool shouldGrab = RockMetalCheck::metalFound() || (isFinalCheckedRock && !isMetal);
         if (shouldGrab)
         {
             isMetal = true;
@@ -602,15 +610,17 @@ void update(const Inputs& inputs)
         
             drive.stop();
         
-            if (rockIndex < NUM_ROCKS - 1)
-            {
-                ++rockIndex;
-                changeState(State::TAPE_FOLLOW_ROCK_CHECK);
-            }
-            else
-            {
-                changeState(State::TAPE_FOLLOW_TO_TOWER);
-            }
+            if (rockIndex < LAST_ROCK_INDEX)
+{
+    ++rockIndex;
+    changeState(State::TAPE_FOLLOW_ROCK_CHECK);
+}
+else
+{
+    // Normally unreachable because the final checked
+    // rock is always grabbed, but this is a safe fallback.
+    changeState(State::TAPE_FOLLOW_UP_RAMP);
+}
         
             break;
         }
@@ -620,10 +630,24 @@ void update(const Inputs& inputs)
 
             if (RockGrabber::isFinished() || RockGrabber::hasFailed())
             {
-                changeState(State::TAPE_FOLLOW_TO_TOWER);
+                changeState(State::TAPE_FOLLOW_UP_RAMP);
             }
             break;
         }
+        case State::TAPE_FOLLOW_UP_RAMP:
+{
+    tapeFollowStep();
+
+    if (
+        millis() - stateStartTime >=
+        UP_RAMP_TIME_MS
+    )
+    {
+        changeState(State::TAPE_FOLLOW_TO_TOWER);
+    }
+
+    break;
+}
 
             case State::TAPE_FOLLOW_TO_TOWER:
                 {
@@ -799,7 +823,8 @@ bool requestStateById(const String& stateId)
     if (stateId == "tower-build")        return requestState(State::TOWER_BUILD);
     if (stateId == "return-to-tape")     return requestState(State::RETURN_TO_TAPE);
     if (stateId == "slow-tape")          return requestState(State::SLOW_TAPE_FOLLOWING);
-    if (stateId == "ir-aligning")          return requestState(State::IR_ALIGNING);
+    if (stateId == "ir-aligning")        return requestState(State::IR_ALIGNING);
+    if (stateId == "tape-up-ramp")       return requestState(State::TAPE_FOLLOW_UP_RAMP);
     if (stateId == "manual-ir-aligning") return requestState(State::MANUAL_IR_ALIGNING);
     if (stateId == "rip-panel")          return requestState(State::RIP_SOLAR_PANEL);
     if (stateId == "rip-panel-fallback") return requestState(State::RIP_SOLAR_PANEL_FALLBACK);
