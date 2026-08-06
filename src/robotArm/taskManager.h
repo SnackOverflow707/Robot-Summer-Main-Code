@@ -17,18 +17,12 @@ private:
 
 public: 
 
-    // Invoked after every individual joint move completes, so callers can
-    // interleave other work (e.g. sensor checks) with an in-progress move
-    // instead of waiting for the whole sequence to finish.
-    using JointDoneCallback = void (*)();
-
     TaskManager(ArmController2& armRef);
-    void executeMove(const ArmPose& waypoint, JointDoneCallback onJointDone = nullptr);
+    void executeMove(const ArmPose& waypoint);
 
 void executeMove(
     const ArmPose& waypoint,
-    const char* jointOrder[],
-    JointDoneCallback onJointDone = nullptr
+    const char* jointOrder[]
 );
 
     void executeSequence(const std::vector<ArmPose>& waypoints); 

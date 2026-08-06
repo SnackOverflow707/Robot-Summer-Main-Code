@@ -2,9 +2,6 @@
 
 #include <Arduino.h>
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
 #include "actuators/MecanumDrive.h"
 #include "robotArm/ArmController2.h"
 #include "robotArm/taskManager.h"
@@ -36,11 +33,6 @@ static constexpr unsigned long DRIVE_SETTLE_TIME_MS = 150;
 
 // Give the claw time to fully close before lifting the rock.
 static constexpr unsigned long CLAW_CLOSE_TIME_MS = 500;
-
-// FIX: added -- the background arm task and the FreeRTOS task creation
-// call both need a stack size / priority.
-static constexpr uint32_t ARM_TASK_STACK_SIZE = 4096;
-static constexpr UBaseType_t ARM_TASK_PRIORITY = 1;
 
 // --------------------------------------------------
 // Internal states
@@ -85,20 +77,6 @@ const char* centreOrder[] = {
 
 
 static GrabState currentState = GrabState::IDLE;
-
-// FIX: added -- tracks whether the background "place rock + retract"
-// task is still running. Read via isArmTaskBusy() so callers know not to
-// touch the arm (e.g. TOWER_RAM) until this clears.
-static volatile bool armTaskRunning = false;
-
-// FIX: added -- passed into the background task since a FreeRTOS task
-// function only takes a single void* parameter, not arbitrary captures.
-// Heap-allocated in start(), freed by the task itself right after it
-// reads the value.
-struct RockFinishParams
-{
-    bool rockIsRight;
-};
 
 // --------------------------------------------------
 // Helpers
@@ -177,45 +155,6 @@ static void correctionStrafe(int rockIndex)
     delay(DRIVE_SETTLE_TIME_MS);
 }
 
-// FIX: added -- runs on its own FreeRTOS task so the drivetrain can start
-// strafing back to tape (and StateMachine can move on to
-// TAPE_FOLLOW_TO_TOWER) while the arm is still lifting/placing/retracting,
-// instead of the whole board waiting on this to finish first.
-static void finishRockTask(void* pvParameters)
-{
-    RockFinishParams* params =
-        static_cast<RockFinishParams*>(pvParameters);
-
-    const bool rockIsRight = params->rockIsRight;
-    delete params;
-
-    // Shoulder was already raised synchronously in start(), before this
-    // task was spawned -- finish the rest of ROCK_OVER_POST here, in the
-    // same relative order putInBinOrder would have used for them
-    // (shoulder, base, wrist+elbow together, claw).
-    arm.setBase(ROCK_OVER_POST.baseAngle);
-    delay(100);
-
-    arm.setElbowWrist(ROCK_OVER_POST.elbowAngle, ROCK_OVER_POST.wristAngle);
-    delay(100);
-
-    arm.setClaw(ROCK_OVER_POST.clawAngle);
-    delay(100);
-
-    // Place the rock.
-    taskManager.executeMove(ROCK_PLACE);
-
-    arm.openClaw();
-    delay(400);
-
-    taskManager.executeMove(ROCK_RETRACT, centreOrder);
-
-    armTaskRunning = false;
-
-    // FreeRTOS tasks must never return -- they have to delete themselves.
-    vTaskDelete(NULL);
-}
-
 // --------------------------------------------------
 // Public functions
 // --------------------------------------------------
@@ -225,148 +164,108 @@ void begin()
     currentState = GrabState::IDLE;
 }
 
-void start(int rockIndex, bool isLastRock)
+void start(int rockIndex)
 {
     const RockApproach::RockPos* rockPositions =
-        RockApproach::getRockPositions();
+    RockApproach::getRockPositions();
 
-    const bool rockIsRight =
-        rockPositions[rockIndex].coil == 1;
+const bool rockIsRight =
+    rockPositions[rockIndex].coil == 1;
 
-    // Strafe opposite the RockApproach direction.
+// Strafe opposite the RockApproach direction.
+if (rockIsRight)
+{
+    drive.strafeLeft(CORRECTION_STRAFE_SPEED);
+}
+else
+{
+    drive.strafeRight(CORRECTION_STRAFE_SPEED);
+}
+
+delay(CORRECTION_STRAFE_TIME_MS);
+
+drive.stop();
+delay(DRIVE_SETTLE_TIME_MS);
+
+// Move backward after strafing.
+drive.backward(CORRECTION_BACKWARD_SPEED);
+delay(CORRECTION_BACKWARD_TIME_MS);
+
+drive.stop();
+delay(DRIVE_SETTLE_TIME_MS);
+
+// Reach and close the claw.
+taskManager.executeMove(PRE_LIFT, preMoveOrder);
+if (rockIsRight)
+{
+    taskManager.executeMove(RIGHT_ROCK_GRAB_OPEN,grabOrder);
+    taskManager.executeMove(RIGHT_ROCK_GRAB_CLOSED);
+}
+else
+{
+    taskManager.executeMove(LEFT_ROCK_GRAB_OPEN,grabOrder);
+    taskManager.executeMove(LEFT_ROCK_GRAB_CLOSED);
+}
+
+// Lift and place the rock.
+taskManager.executeMove(ROCK_OVER_POST, putInBinOrder );
+taskManager.executeMove(ROCK_PLACE);
+
+// Not arm.openClaw() -- that swings all the way to the servo's
+// mechanical minimum. 25 matches the "open" angle already used by
+// ROCK_PLACE/ROCK_RETRACT/*_ROCK_GRAB_OPEN in this same sequence.
+arm.setClaw(25);
+delay(400);
+
+taskManager.executeMove(ROCK_RETRACT,  centreOrder);
+
+// Strafe back toward the tape.
+while (true)
+{
+    updateTapeSensors();
+
+    const TapeFollowerStatus status = getTapeFollowerStatus();
+
+    const bool onTape =
+        !status.leftWhite ||
+        !status.rightWhite;
+
+    if (onTape)
+    {
+        break;
+    }
+
     if (rockIsRight)
     {
-        drive.strafeLeft(CORRECTION_STRAFE_SPEED);
+        // We moved left to grab the rock,
+        // so move right to return.
+        drive.strafeRight(150);
     }
     else
     {
-        drive.strafeRight(CORRECTION_STRAFE_SPEED);
+        // We moved right to grab the rock,
+        // so move left to return.
+        drive.strafeLeft(150);
     }
 
-    delay(CORRECTION_STRAFE_TIME_MS);
+    delay(10);
+}
 
-    drive.stop();
-    delay(DRIVE_SETTLE_TIME_MS);
-
-    // Move backward after strafing.
-    drive.backward(CORRECTION_BACKWARD_SPEED);
-    delay(CORRECTION_BACKWARD_TIME_MS);
-
-    drive.stop();
-    delay(DRIVE_SETTLE_TIME_MS);
-
-    // Reach and close the claw. This part always stays blocking -- the
-    // robot has to be stationary and precisely positioned for the grab
-    // to succeed, so there's nothing to gain by parallelizing it.
-    taskManager.executeMove(PRE_LIFT, preMoveOrder);
-    if (rockIsRight)
-    {
-        taskManager.executeMove(RIGHT_ROCK_GRAB_OPEN, grabOrder);
-        taskManager.executeMove(RIGHT_ROCK_GRAB_CLOSED);
-    }
-    else
-    {
-        taskManager.executeMove(LEFT_ROCK_GRAB_OPEN, grabOrder);
-        taskManager.executeMove(LEFT_ROCK_GRAB_CLOSED);
-    }
-
-    if (isLastRock)
-    {
-        // FIX: last rock keeps the original fully-blocking behavior --
-        // finish placing the rock inline before returning to tape, since
-        // there's no next rock to visit and no time pressure to overlap.
-        taskManager.executeMove(ROCK_OVER_POST, putInBinOrder);
-        taskManager.executeMove(ROCK_PLACE);
-
-        arm.openClaw();
-        delay(400);
-
-        taskManager.executeMove(ROCK_RETRACT, centreOrder);
-    }
-    else
-    {
-        // Raise the shoulder (lift the rock off the ground) synchronously
-        // before anything else proceeds -- letting the background task
-        // or the drive start while the arm is still down risks dragging
-        // the rock, or catching the claw, along the ground.
-        arm.setShoulder(ROCK_OVER_POST.shoulderAngle);
-        delay(100);
-
-        // FIX: everything except the last rock hands the rest of the
-        // lift/place/retract sequence off to a background task once the
-        // shoulder is up, so the strafe-back-to-tape below (and the
-        // state transition that follows it) doesn't wait on the arm.
-        RockFinishParams* params = new RockFinishParams{rockIsRight};
-
-        armTaskRunning = true;
-
-        xTaskCreate(
-            finishRockTask,
-            "rockFinish",
-            ARM_TASK_STACK_SIZE,
-            params,
-            ARM_TASK_PRIORITY,
-            nullptr
-        );
-    }
-
-    // Strafe back toward the tape, sensor-checked the whole way so it stops
-    // exactly when it lands on tape instead of overshooting -- driving blind
-    // for the several seconds the arm sequence above takes overshot the tape
-    // entirely, so that strafe can only start once we have sensor feedback.
-    //
-    // For non-last rocks this now runs concurrently with finishRockTask()
-    // above (short strafe vs. multi-second arm sequence), instead of after
-    // it -- that overlap is the actual time savings.
-    while (true)
-    {
-        updateTapeSensors();
-
-        const TapeFollowerStatus status = getTapeFollowerStatus();
-
-        const bool onTape =
-            !status.leftWhite ||
-            !status.rightWhite;
-
-        if (onTape)
-        {
-            break;
-        }
-
-        if (rockIsRight)
-        {
-            // We moved left to grab the rock,
-            // so move right to return.
-            drive.strafeRight(150);
-        }
-        else
-        {
-            // We moved right to grab the rock,
-            // so move left to return.
-            drive.strafeLeft(150);
-        }
-
-        delay(10);
-    }
-
-    drive.stop();
-    currentState = GrabState::FINISHED;
+drive.stop();
+currentState = GrabState::FINISHED;
 }
 
 void update()
 {
     // The sequence is currently blocking, so everything is completed
-    // inside start(). (The background arm task spawned for non-last
-    // rocks is the exception -- it keeps running after start() returns
-    // and after currentState is already FINISHED; see isArmTaskBusy().)
+    // inside start().
 }
 
 void stop()
 {
     drive.stop();
 
-    // Arm motion cannot currently be interrupted through TaskManager --
-    // note this does NOT stop finishRockTask() if one is still running.
+    // Arm motion cannot currently be interrupted through TaskManager.
     currentState = GrabState::IDLE;
 }
 
@@ -383,11 +282,6 @@ bool hasFailed()
 bool isDone()
 {
     return isFinished() || hasFailed();
-}
-
-bool isArmTaskBusy()
-{
-    return armTaskRunning;
 }
 
 } // namespace RockGrabber

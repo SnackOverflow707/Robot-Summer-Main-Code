@@ -11,8 +11,7 @@ TaskManager::TaskManager(ArmController2& armRef) : _arm(armRef) {
 
 void TaskManager::executeMove(
     const ArmPose& waypoint,
-    const char* jointOrder[],
-    JointDoneCallback onJointDone
+    const char* jointOrder[]
 )
 {
     bool elbowWristMoved = false;
@@ -51,18 +50,12 @@ void TaskManager::executeMove(
             printf("Joint name not recognized: %s\n", jointOrder[word]);
         }
         delay(100);
-
-        if (onJointDone)
-        {
-            onJointDone();
-        }
     }
 }
 
 
 void TaskManager::executeMove(
-    const ArmPose& waypoint,
-    JointDoneCallback onJointDone
+    const ArmPose& waypoint
 )
 {
     const char* jointOrder[] = {
@@ -73,7 +66,7 @@ void TaskManager::executeMove(
         "claw"
     };
 
-    executeMove(waypoint, jointOrder, onJointDone);
+    executeMove(waypoint, jointOrder);
 }
 
 

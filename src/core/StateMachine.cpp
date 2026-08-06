@@ -38,9 +38,7 @@ namespace StateMachine
 // Configuration
 // --------------------------------------------------
 
-static constexpr uint16_t MAG1_THRESHOLD = 20000;
-static constexpr uint16_t MAG2_THRESHOLD = 3000;
-static constexpr uint16_t METAL_THRESHOLD = 100;
+static constexpr uint16_t METAL_THRESHOLD = 150;
 static unsigned long courseStartTime = 0;
 
 
@@ -246,8 +244,9 @@ static void changeState(State newState)
             
         case State::ROCK_GRAB:
             RockGrabber::begin();
-            RockGrabber::start(rockIndex, rockIndex == NUM_ROCKS_TO_CHECK - 1);
+            RockGrabber::start(rockIndex);
             break;
+
         case State::TAPE_FOLLOW_UP_RAMP:
             resetTapePID();
             setTapeBaseSpeed(UP_RAMP_TAPE_SPEED);
@@ -870,12 +869,11 @@ uint16_t getSelectedMagnitude(uint16_t mag1, uint16_t mag2)
 
 bool isSelectedDetected(uint16_t mag1, uint16_t mag2)
 {
-    if (isMag1Selected())
-    {
-        return mag1 > MAG1_THRESHOLD;
-    }
-
-    return mag2 > MAG2_THRESHOLD;
+    // Delegates to SlowTapeFollowing's thresholds -- that's the only
+    // place MAG1_THRESHOLD/MAG2_THRESHOLD are defined now, since that's
+    // what actually drives IR-detection behavior; this just mirrors it
+    // for the website's telemetry display.
+    return SlowTapeFollowing::isIRDetected(mag1, mag2);
 }
 unsigned long getCourseElapsedMs()
 {

@@ -16,7 +16,7 @@ namespace SlowTapeFollowing
 
 static constexpr int TAPE_SPEED = 80;
 
-static constexpr uint16_t MAG1_THRESHOLD = 10000; //testing 
+static constexpr uint16_t MAG1_THRESHOLD = 20000;
 static constexpr uint16_t MAG2_THRESHOLD = 3000;
 
 static constexpr int SENSOR_SELECT_PIN = 11;
