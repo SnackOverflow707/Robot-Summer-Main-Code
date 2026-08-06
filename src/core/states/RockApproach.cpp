@@ -14,9 +14,9 @@ namespace RockApproach
         {  55.7328f,  -664.2605f, 1, true  },  // Rock 1
         { -19.4728f, -1126.4563f, 0, true  },  // Rock 2
         {  89.8105f, -1405.8289f, 1, false },  // Rock 3
-        { 335.1521f, -1605.6941f, 1, false },  // Rock 4
-        { 354.2891f, -3093.1648f, 0, false },  // Rock 5
-        { 252.7281f, -3308.1218f, 1, true  }   // Rock 6
+        { 335.1521f, -1705.6941f, 1, false },  // Rock 4
+        { 354.2891f, -3293.1648f, 0, false },  // Rock 5
+        { 252.7281f, -3508.1218f, 1, true  }   // Rock 6
     };
     struct ScanPos {
         float x;
