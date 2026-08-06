@@ -11,10 +11,10 @@ namespace RockMetalCheck
 {
 
 static constexpr uint8_t BASELINE_SAMPLE_COUNT = 20;
-static constexpr uint8_t CHECK_SAMPLE_COUNT = 5; //testing? used to be 5...?
+static constexpr uint8_t CHECK_SAMPLE_COUNT = 6; //testing? used to be 5...?
 
 static constexpr unsigned long SETTLE_TIME_MS = 2000;
-static constexpr float METAL_CHANGE_THRESHOLD_HZ = 150.0f;
+static constexpr float METAL_CHANGE_THRESHOLD_HZ = 160.0f;
 
 enum class Phase
 {
