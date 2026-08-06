@@ -28,7 +28,7 @@ static constexpr unsigned long PHASE_TIMEOUT_MS = 10000;
 
 //speed up attempt? Assume linear relationship 
 static constexpr int HARDCODED_STRAFE_SPEED = 100;
-static constexpr unsigned long HARDCODED_STRAFE_TIME_MS = 1000;
+static constexpr unsigned long HARDCODED_STRAFE_TIME_MS = 1600;
 
 
 enum class ManualAlignState

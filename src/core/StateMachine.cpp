@@ -220,7 +220,7 @@ static void changeState(State newState)
     {
         case State::TAPE_FOLLOW_ROCK_CHECK:
             resetTapePID();
-            setTapeBaseSpeed(100);
+            setTapeBaseSpeed(160);
             setTapeFollowing(true);
             break;
 
