@@ -137,10 +137,6 @@ static int clampRockIndex(int rockIndex)
  * Therefore even indices are right-side rocks and odd indices
  * are left-side rocks.
  */
-static bool isRightSideRock(int rockIndex)
-{
-    return (rockIndex % 2) == 0;
-}
 
 /*
  * This deliberately strafes opposite the direction used to approach
@@ -159,7 +155,14 @@ static bool isRightSideRock(int rockIndex)
  */
 static void correctionStrafe(int rockIndex)
 {
-    if (isRightSideRock(rockIndex))
+    const RockApproach::RockPos* rockPositions =
+        RockApproach::getRockPositions();
+
+    const bool rockIsRight =
+        rockPositions[rockIndex].coil == 1;
+
+    // Strafe opposite the RockApproach direction.
+    if (rockIsRight)
     {
         drive.strafeLeft(CORRECTION_STRAFE_SPEED);
     }

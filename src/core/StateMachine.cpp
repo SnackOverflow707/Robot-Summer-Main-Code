@@ -247,8 +247,10 @@ static void changeState(State newState)
 
         case State::TAPE_FOLLOW_TO_TOWER:
             resetTapePID();
-            setTapeBaseSpeed(80);
+            setTapeBaseSpeed(160);
             setTapeFollowing(true);
+            sideTapeSightings = 0;
+            sideTapeArmed = true;
             break;
 
         case State::TOWER_RAM:
@@ -395,7 +397,8 @@ void restart()
 
     if (enabled)
     {
-        changeState(State::ENDPOINT);
+        UART::resetFlowPose();
+        changeState(State::TAPE_FOLLOW_ROCK_CHECK);
     }
     else
     {

@@ -11,11 +11,11 @@ namespace RockApproach
 
         
     const RockPos ROCK_POSITIONS[6] = {
-        {  55.7328f,  -554.2605f, 1, true  },  // Rock 1
-        { -19.4728f, -1026.4563f, 0, true  },  // Rock 2
-        {  89.8105f, -1305.8289f, 1, false },  // Rock 3
-        { 335.1521f, -1655.6941f, 1, false },  // Rock 4
-        { 354.2891f, -3293.1648f, 0, false },  // Rock 5
+        {  55.7328f,  -654.2605f, 1, true  },  // Rock 1
+        { -19.4728f, -1136.4563f, 0, true  },  // Rock 2
+        {  89.8105f, -1505.8289f, 1, false },  // Rock 3
+        { 335.1521f, -1855.6941f, 1, false },  // Rock 4
+        { 354.2891f, -3303.1648f, 0, false },  // Rock 5
         { 252.7281f, -3608.1218f, 1, true  }   // Rock 6
     };
     struct ScanPos {
