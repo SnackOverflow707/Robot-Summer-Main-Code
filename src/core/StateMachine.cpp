@@ -56,6 +56,12 @@ static constexpr uint8_t LAST_ROCK_INDEX = NUM_ROCKS_TO_CHECK - 1;
 static constexpr int UP_RAMP_TAPE_SPEED = 160;
 static constexpr unsigned long UP_RAMP_TIME_MS = 15000;
 
+// Open-loop backup before the fallback solar panel grab sequence.
+// Matches IRAligner's SEARCH_FORWARD speed/time (IRAligner.cpp), since
+// that's the search that just failed right before this runs.
+static constexpr int FALLBACK_BACKUP_SPEED = 60;
+static constexpr unsigned long FALLBACK_BACKUP_TIME_MS = 3000;
+
 
 
 static constexpr unsigned long SENSOR_DEBOUNCE_MS = 100;
@@ -138,6 +144,7 @@ const char* getStateName(State state)
         case State::IR_ALIGNING:         return "IR Tune Backward";
         case State::MANUAL_IR_ALIGNING:       return "Manual IR Aligning";
         case State::RIP_SOLAR_PANEL:          return "Rip Solar Panel";
+        case State::FALLBACK_BACKUP:          return "Fallback Backup";
         case State::RIP_SOLAR_PANEL_FALLBACK: return "Rip Solar Panel (Fallback)";
         case State::ENDPOINT:                 return "Endpoint";
         case State::STOPPED:                  return "Stopped";
@@ -167,6 +174,7 @@ const char* getStateId(State state)
         case State::IR_ALIGNING:              return "ir-aligning";
         case State::MANUAL_IR_ALIGNING:       return "manual-ir-aligning";
         case State::RIP_SOLAR_PANEL:          return "rip-panel";
+        case State::FALLBACK_BACKUP:          return "fallback-backup";
         case State::RIP_SOLAR_PANEL_FALLBACK: return "rip-panel-fallback";
         case State::ENDPOINT:                 return "endpoint";
         case State::STOPPED:                  return "stopped";
@@ -311,6 +319,10 @@ static void changeState(State newState)
         case State::RIP_SOLAR_PANEL:
             SolarPanelRipper::begin();
             SolarPanelRipper::start();
+            break;
+
+        case State::FALLBACK_BACKUP:
+            // Driven open-loop in update(); nothing to set up here.
             break;
 
         case State::RIP_SOLAR_PANEL_FALLBACK:
@@ -742,9 +754,10 @@ else
             else if (IRAligner::hasFailed())
             {
                 // Never found the beacon precisely -- the robot is not
-                // in the normal aligned position, so run the fallback
-                // grab sequence instead of just stopping.
-                changeState(State::RIP_SOLAR_PANEL_FALLBACK);
+                // in the normal aligned position. Back off the panel,
+                // then run the fallback grab sequence instead of just
+                // stopping.
+                changeState(State::FALLBACK_BACKUP);
             }
             break;
 
@@ -769,6 +782,20 @@ else
             }
 
             break;
+
+        case State::FALLBACK_BACKUP:
+        {
+            // Open-loop: no pose check, just run for a fixed time.
+            if (millis() - stateStartTime >= FALLBACK_BACKUP_TIME_MS)
+            {
+                drive.stop();
+                changeState(State::RIP_SOLAR_PANEL_FALLBACK);
+                break;
+            }
+
+            drive.backward(FALLBACK_BACKUP_SPEED);
+            break;
+        }
 
         case State::RIP_SOLAR_PANEL:
         case State::RIP_SOLAR_PANEL_FALLBACK:
@@ -828,6 +855,7 @@ bool requestStateById(const String& stateId)
     if (stateId == "tape-up-ramp")       return requestState(State::TAPE_FOLLOW_UP_RAMP);
     if (stateId == "manual-ir-aligning") return requestState(State::MANUAL_IR_ALIGNING);
     if (stateId == "rip-panel")          return requestState(State::RIP_SOLAR_PANEL);
+    if (stateId == "fallback-backup")    return requestState(State::FALLBACK_BACKUP);
     if (stateId == "rip-panel-fallback") return requestState(State::RIP_SOLAR_PANEL_FALLBACK);
     if (stateId == "endpoint")           return requestState(State::ENDPOINT);
     if (stateId == "stopped")            return requestState(State::STOPPED);

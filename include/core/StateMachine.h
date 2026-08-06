@@ -31,8 +31,13 @@ enum class State
     RIP_SOLAR_PANEL,
 
     // Reached when IRAlignerManual's strafe + IRAligner's close-range
-    // search both fail to find the beacon -- runs the fallback grab
-    // sequence instead of giving up.
+    // search both fail to find the beacon. Drives straight backward
+    // (open-loop, timed) to back off the panel before the fallback
+    // grab sequence runs, since the fallback arm angles assume that
+    // backed-off position.
+    FALLBACK_BACKUP,
+
+    // Runs the fallback grab sequence instead of giving up.
     RIP_SOLAR_PANEL_FALLBACK,
 
     ENDPOINT,
