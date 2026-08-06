@@ -8,7 +8,7 @@
 #define TOWER_CLAW_CLOSED 39
 
 //tower positions 
-static const ArmPose PRE_TOWER_1 = {155, 140, 225, 50, 30}; 
+static const ArmPose PRE_TOWER_1 = {120, 140, 225, 50, 30}; 
 
 static const ArmPose REACH_TOWER_1 = {155, 178, 225, 50, 30}; 
 static const ArmPose GRAB_TOWER_1 = {155, 178, 225, 50, TOWER_CLAW_CLOSED}; 
