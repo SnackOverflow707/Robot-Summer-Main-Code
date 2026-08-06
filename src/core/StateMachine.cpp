@@ -409,7 +409,7 @@ void restart()
     if (enabled)
     {
         UART::resetFlowPose();
-        changeState(State::TAPE_FOLLOW_ROCK_CHECK);
+        changeState(State::TAPE_FOLLOW_UP_RAMP);
     }
     else
     {
