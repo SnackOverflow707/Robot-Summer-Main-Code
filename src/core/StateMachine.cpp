@@ -54,7 +54,7 @@ static constexpr uint8_t NUM_ROCKS_TO_CHECK = 1;
 static constexpr uint8_t LAST_ROCK_INDEX = NUM_ROCKS_TO_CHECK - 1;
 
 static constexpr int UP_RAMP_TAPE_SPEED = 160;
-static constexpr unsigned long UP_RAMP_TIME_MS = 15000;
+static constexpr unsigned long UP_RAMP_TIME_MS = 25000;
 
 // Open-loop backup before the fallback solar panel grab sequence.
 // Matches IRAligner's SEARCH_FORWARD speed/time (IRAligner.cpp), since
