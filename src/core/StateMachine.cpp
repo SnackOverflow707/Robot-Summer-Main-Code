@@ -60,7 +60,7 @@ static constexpr unsigned long UP_RAMP_TIME_MS = 25000;
 // Matches IRAligner's SEARCH_FORWARD speed/time (IRAligner.cpp), since
 // that's the search that just failed right before this runs.
 static constexpr int FALLBACK_BACKUP_SPEED = 60;
-static constexpr unsigned long FALLBACK_BACKUP_TIME_MS = 3000;
+static constexpr unsigned long FALLBACK_BACKUP_TIME_MS = 2500;
 
 
 
