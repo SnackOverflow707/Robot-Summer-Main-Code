@@ -28,6 +28,12 @@ enum class State
     MANUAL_IR_ALIGNING, 
 
     RIP_SOLAR_PANEL,
+
+    // Reached when IRAlignerManual's strafe + IRAligner's close-range
+    // search both fail to find the beacon -- runs the fallback grab
+    // sequence instead of giving up.
+    RIP_SOLAR_PANEL_FALLBACK,
+
     ENDPOINT,
     STOPPED
 };

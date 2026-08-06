@@ -9,7 +9,7 @@ static constexpr unsigned long TOT_TIME_FOR_COURSE = 120000UL; // 2 minutes
 
 // TODO measure: worst-case time to complete the tower build + solar
 // panel rip once rocks are done.
-static constexpr unsigned long TOT_TIME_TOWER_AND_PANELS = 0UL;
+static constexpr unsigned long TOT_TIME_TOWER_AND_PANELS = 60 * 1000UL; 
 
 // Safety margin subtracted from the remaining rock-time budget.
 static constexpr unsigned long TIME_BUFFER = 10 * 1000UL; //10 seconds? 
