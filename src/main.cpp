@@ -31,7 +31,7 @@ void setup()
     wifi.begin();
     wifi.enable();
     
-    delay(1000);
+    delay(500);
 
     StateMachine::begin();
     StateMachine::setEnabled(true);
