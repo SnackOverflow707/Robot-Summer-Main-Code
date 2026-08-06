@@ -14,7 +14,7 @@ namespace TowerRam
 // --------------------------------------------------
 
 static constexpr int ROTATE_SPEED = 140;
-static constexpr unsigned long ROTATE_TIME_MS = 3250;
+static constexpr unsigned long ROTATE_TIME_MS = 3350;
 
 static constexpr int STRAFE_SPEED = 120;
 static constexpr unsigned long SHORT_STRAFE_TIME_MS = 800;
